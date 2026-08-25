@@ -1,0 +1,7 @@
+{
+  "name": "StockAlert",
+  "description": "맞춤형 조건 검색 및 실시간 기술적 지표 알림 주식 차트 애플리케이션",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
+
