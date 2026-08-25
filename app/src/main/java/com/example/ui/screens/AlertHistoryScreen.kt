@@ -1,6 +1,7 @@
 package com.example.ui.screens
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -19,12 +20,9 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowForward
-import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.DeleteSweep
 import androidx.compose.material.icons.filled.DoneAll
-import androidx.compose.material.icons.filled.NotificationsActive
 import androidx.compose.material.icons.filled.NotificationsNone
-import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Icon
@@ -32,20 +30,27 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.model.AlertHistory
 import com.example.model.Stock
-import com.example.ui.theme.AccentGold
-import com.example.ui.theme.StockBlue
-import com.example.ui.theme.StockRed
+import com.example.ui.theme.DarkBorder
+import com.example.ui.theme.DarkOledBackground
+import com.example.ui.theme.DarkSurface
+import com.example.ui.theme.DarkSurfaceVariant
+import com.example.ui.theme.NeonAmber
+import com.example.ui.theme.NeonCyan
+import com.example.ui.theme.NeonGreen
+import com.example.ui.theme.NeonRed
+import com.example.ui.theme.TabularRateBadge
 import com.example.ui.theme.TextMuted
 import com.example.ui.theme.TextPrimary
 import com.example.ui.theme.TextSecondary
@@ -66,7 +71,7 @@ fun AlertHistoryScreen(
     Column(
         modifier = modifier
             .fillMaxSize()
-            .background(MaterialTheme.colorScheme.background)
+            .background(DarkOledBackground)
             .padding(16.dp)
             .testTag("alert_history_screen")
     ) {
@@ -94,7 +99,7 @@ fun AlertHistoryScreen(
             Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
                 if (histories.any { !it.isRead }) {
                     IconButton(onClick = onMarkAllAsRead, modifier = Modifier.size(36.dp).testTag("mark_all_read_btn")) {
-                        Icon(imageVector = Icons.Filled.DoneAll, contentDescription = "모두 읽음", tint = MaterialTheme.colorScheme.primary)
+                        Icon(imageVector = Icons.Filled.DoneAll, contentDescription = "모두 읽음", tint = NeonCyan)
                     }
                 }
                 if (histories.isNotEmpty()) {
@@ -122,7 +127,7 @@ fun AlertHistoryScreen(
                     Spacer(modifier = Modifier.height(12.dp))
                     Text("아직 발동된 알림 내역이 없습니다.", fontSize = 16.sp, fontWeight = FontWeight.Bold, color = TextPrimary)
                     Spacer(modifier = Modifier.height(4.dp))
-                    Text("설정한 조건이 충족되면 여기에 실시간 기록됩니다.", fontSize = 12.sp, color = TextSecondary)
+                    Text("설정한 온디바이스 조건이 충족되면 여기에 실시간 기록됩니다.", fontSize = 12.sp, color = TextSecondary)
                 }
             }
         } else {
@@ -144,7 +149,11 @@ fun AlertHistoryScreen(
                             .testTag("history_item_${alert.id}"),
                         shape = RoundedCornerShape(14.dp),
                         colors = CardDefaults.cardColors(
-                            containerColor = if (!alert.isRead) MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.5f) else MaterialTheme.colorScheme.surfaceVariant
+                            containerColor = if (!alert.isRead) DarkSurfaceVariant else DarkSurface
+                        ),
+                        border = androidx.compose.foundation.BorderStroke(
+                            1.dp,
+                            if (!alert.isRead) NeonCyan.copy(alpha = 0.6f) else DarkBorder
                         )
                     ) {
                         Column(modifier = Modifier.padding(14.dp)) {
@@ -158,7 +167,7 @@ fun AlertHistoryScreen(
                                         Box(
                                             modifier = Modifier
                                                 .size(8.dp)
-                                                .background(StockRed, CircleShape)
+                                                .background(NeonAmber, CircleShape)
                                         )
                                         Spacer(modifier = Modifier.width(6.dp))
                                     }
@@ -171,13 +180,14 @@ fun AlertHistoryScreen(
                                     Spacer(modifier = Modifier.width(6.dp))
                                     Surface(
                                         shape = RoundedCornerShape(4.dp),
-                                        color = AccentGold.copy(alpha = 0.2f)
+                                        color = DarkOledBackground
                                     ) {
                                         Text(
                                             text = alert.ruleName,
                                             fontSize = 10.sp,
+                                            fontFamily = FontFamily.Monospace,
                                             fontWeight = FontWeight.Bold,
-                                            color = AccentGold,
+                                            color = NeonCyan,
                                             modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
                                         )
                                     }
@@ -186,6 +196,7 @@ fun AlertHistoryScreen(
                                 Text(
                                     text = dateStr,
                                     fontSize = 11.sp,
+                                    fontFamily = FontFamily.Monospace,
                                     color = TextMuted
                                 )
                             }
@@ -210,15 +221,15 @@ fun AlertHistoryScreen(
                                     Text(
                                         text = "발동가: %,.0f원".format(alert.triggeredPrice),
                                         fontSize = 12.sp,
+                                        fontFamily = FontFamily.Monospace,
                                         fontWeight = FontWeight.Bold,
                                         color = TextSecondary
                                     )
                                     Spacer(modifier = Modifier.width(8.dp))
                                     Text(
                                         text = "(%+,.2f%%)".format(alert.changeRate),
-                                        fontSize = 12.sp,
-                                        fontWeight = FontWeight.Bold,
-                                        color = if (alert.changeRate >= 0) StockRed else StockBlue
+                                        style = TabularRateBadge,
+                                        color = if (alert.changeRate >= 0) NeonGreen else NeonRed
                                     )
                                 }
 
@@ -227,12 +238,12 @@ fun AlertHistoryScreen(
                                         text = "차트 보기",
                                         fontSize = 12.sp,
                                         fontWeight = FontWeight.Bold,
-                                        color = MaterialTheme.colorScheme.primary
+                                        color = NeonCyan
                                     )
                                     Icon(
                                         imageVector = Icons.Filled.ArrowForward,
                                         contentDescription = null,
-                                        tint = MaterialTheme.colorScheme.primary,
+                                        tint = NeonCyan,
                                         modifier = Modifier.size(14.dp)
                                     )
                                 }
@@ -244,3 +255,4 @@ fun AlertHistoryScreen(
         }
     }
 }
+

@@ -5,15 +5,20 @@ import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.slideInVertically
 import androidx.compose.animation.slideOutVertically
+import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Close
@@ -28,14 +33,22 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.model.AlertHistory
-import com.example.ui.theme.AccentGold
-import com.example.ui.theme.StockRed
+import com.example.ui.theme.DarkBorder
+import com.example.ui.theme.DarkOledBackground
+import com.example.ui.theme.DarkSurface
+import com.example.ui.theme.NeonAmber
+import com.example.ui.theme.NeonCyan
+import com.example.ui.theme.NeonGreen
+import com.example.ui.theme.NeonRed
+import com.example.ui.theme.TextMuted
 import com.example.ui.theme.TextPrimary
 import com.example.ui.theme.TextSecondary
 
@@ -53,20 +66,20 @@ fun QuickAlertBanner(
         modifier = modifier
     ) {
         if (alert != null) {
-            Card(
+            // Dynamic Island Style Floating Pill Card
+            Box(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(horizontal = 16.dp, vertical = 8.dp)
+                    .padding(horizontal = 16.dp, vertical = 6.dp)
+                    .clip(RoundedCornerShape(20.dp))
+                    .background(DarkSurface)
+                    .border(1.dp, NeonCyan.copy(alpha = 0.5f), RoundedCornerShape(20.dp))
                     .clickable { onClick(alert) }
-                    .testTag("in_app_alert_banner"),
-                shape = RoundedCornerShape(16.dp),
-                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.primaryContainer),
-                elevation = CardDefaults.cardElevation(defaultElevation = 8.dp)
+                    .padding(horizontal = 14.dp, vertical = 10.dp)
+                    .testTag("in_app_alert_banner")
             ) {
                 Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(14.dp),
+                    modifier = Modifier.fillMaxWidth(),
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.SpaceBetween
                 ) {
@@ -75,43 +88,51 @@ fun QuickAlertBanner(
                         modifier = Modifier.weight(1f)
                     ) {
                         Surface(
-                            shape = RoundedCornerShape(10.dp),
-                            color = AccentGold.copy(alpha = 0.2f),
-                            modifier = Modifier.size(40.dp)
+                            shape = CircleShape,
+                            color = NeonAmber.copy(alpha = 0.2f),
+                            modifier = Modifier.size(36.dp)
                         ) {
-                            BoxCenter {
+                            Box(contentAlignment = Alignment.Center) {
                                 Icon(
                                     imageVector = Icons.Filled.NotificationsActive,
                                     contentDescription = "알림",
-                                    tint = AccentGold,
-                                    modifier = Modifier.size(22.dp)
+                                    tint = NeonAmber,
+                                    modifier = Modifier.size(18.dp)
                                 )
                             }
                         }
 
-                        Spacer(modifier = Modifier.width(12.dp))
+                        Spacer(modifier = Modifier.width(10.dp))
 
                         Column {
                             Row(verticalAlignment = Alignment.CenterVertically) {
                                 Text(
-                                    text = "[${alert.stockName}]",
-                                    fontWeight = FontWeight.ExtraBold,
+                                    text = alert.stockName,
+                                    fontWeight = FontWeight.Bold,
                                     fontSize = 14.sp,
-                                    color = MaterialTheme.colorScheme.onPrimaryContainer
+                                    color = TextPrimary
                                 )
                                 Spacer(modifier = Modifier.width(6.dp))
-                                Text(
-                                    text = alert.ruleName,
-                                    fontWeight = FontWeight.SemiBold,
-                                    fontSize = 13.sp,
-                                    color = MaterialTheme.colorScheme.primary
-                                )
+                                Surface(
+                                    shape = RoundedCornerShape(4.dp),
+                                    color = DarkOledBackground
+                                ) {
+                                    Text(
+                                        text = alert.ruleName,
+                                        fontWeight = FontWeight.Bold,
+                                        fontSize = 11.sp,
+                                        fontFamily = FontFamily.Monospace,
+                                        color = NeonCyan,
+                                        modifier = Modifier.padding(horizontal = 4.dp, vertical = 2.dp)
+                                    )
+                                }
                             }
+                            Spacer(modifier = Modifier.height(2.dp))
                             Text(
                                 text = alert.message,
                                 fontSize = 12.sp,
-                                color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.85f),
-                                maxLines = 2
+                                color = TextSecondary,
+                                maxLines = 1
                             )
                         }
                     }
@@ -123,7 +144,7 @@ fun QuickAlertBanner(
                         Icon(
                             imageVector = Icons.Filled.Close,
                             contentDescription = "닫기",
-                            tint = MaterialTheme.colorScheme.onPrimaryContainer,
+                            tint = TextMuted,
                             modifier = Modifier.size(16.dp)
                         )
                     }
@@ -133,12 +154,3 @@ fun QuickAlertBanner(
     }
 }
 
-@Composable
-private fun BoxCenter(content: @Composable () -> Unit) {
-    androidx.compose.foundation.layout.Box(
-        contentAlignment = Alignment.Center,
-        modifier = Modifier.fillMaxWidth()
-    ) {
-        content()
-    }
-}

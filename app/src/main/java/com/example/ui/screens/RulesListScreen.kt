@@ -1,6 +1,7 @@
 package com.example.ui.screens
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -22,6 +23,7 @@ import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.NotificationsActive
 import androidx.compose.material.icons.filled.NotificationsOff
 import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.FloatingActionButton
@@ -31,20 +33,27 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Switch
+import androidx.compose.material3.SwitchDefaults
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.model.AlertRule
 import com.example.model.RuleScope
-import com.example.ui.theme.AccentGold
-import com.example.ui.theme.BrandPrimary
-import com.example.ui.theme.StockRed
+import com.example.ui.theme.DarkBorder
+import com.example.ui.theme.DarkOledBackground
+import com.example.ui.theme.DarkSurface
+import com.example.ui.theme.DarkSurfaceVariant
+import com.example.ui.theme.NeonAmber
+import com.example.ui.theme.NeonCyan
+import com.example.ui.theme.NeonGreen
+import com.example.ui.theme.NeonRed
 import com.example.ui.theme.TextMuted
 import com.example.ui.theme.TextPrimary
 import com.example.ui.theme.TextSecondary
@@ -61,11 +70,12 @@ fun RulesListScreen(
     modifier: Modifier = Modifier
 ) {
     Scaffold(
+        containerColor = DarkOledBackground,
         floatingActionButton = {
             FloatingActionButton(
                 onClick = onAddNewRule,
-                containerColor = MaterialTheme.colorScheme.primary,
-                contentColor = Color.White,
+                containerColor = NeonCyan,
+                contentColor = Color.Black,
                 modifier = Modifier.testTag("fab_add_rule")
             ) {
                 Icon(imageVector = Icons.Filled.Add, contentDescription = "규칙 추가")
@@ -75,7 +85,7 @@ fun RulesListScreen(
         Column(
             modifier = modifier
                 .fillMaxSize()
-                .background(MaterialTheme.colorScheme.background)
+                .background(DarkOledBackground)
                 .padding(innerPadding)
                 .padding(16.dp)
                 .testTag("rules_list_screen")
@@ -88,13 +98,13 @@ fun RulesListScreen(
             ) {
                 Column {
                     Text(
-                        text = "감시 조건 관리",
+                        text = "온디바이스 감시 규칙 관리",
                         style = MaterialTheme.typography.headlineSmall,
                         fontWeight = FontWeight.Bold,
                         color = TextPrimary
                     )
                     Text(
-                        text = "등록된 ${rules.size}개의 조건 알림 규칙",
+                        text = "등록된 ${rules.size}개의 온디바이스 알림 규칙",
                         fontSize = 12.sp,
                         color = TextSecondary
                     )
@@ -102,14 +112,16 @@ fun RulesListScreen(
 
                 Surface(
                     shape = RoundedCornerShape(8.dp),
-                    color = MaterialTheme.colorScheme.primaryContainer
+                    color = DarkSurfaceVariant,
+                    border = androidx.compose.foundation.BorderStroke(1.dp, NeonCyan.copy(alpha = 0.5f))
                 ) {
                     val activeCount = rules.count { it.isEnabled }
                     Text(
                         text = "${activeCount}개 활성",
                         fontWeight = FontWeight.Bold,
+                        fontFamily = FontFamily.Monospace,
                         fontSize = 12.sp,
-                        color = MaterialTheme.colorScheme.onPrimaryContainer,
+                        color = NeonCyan,
                         modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
                     )
                 }
@@ -134,8 +146,12 @@ fun RulesListScreen(
                         Spacer(modifier = Modifier.height(4.dp))
                         Text("골든크로스, 목표가 돌파, RSI 과매도 조건을 만들어보세요.", fontSize = 12.sp, color = TextSecondary)
                         Spacer(modifier = Modifier.height(16.dp))
-                        Button(onClick = onAddNewRule, modifier = Modifier.testTag("empty_add_rule_btn")) {
-                            Text("첫 번째 조건 알림 생성")
+                        Button(
+                            onClick = onAddNewRule,
+                            colors = ButtonDefaults.buttonColors(containerColor = NeonCyan),
+                            modifier = Modifier.testTag("empty_add_rule_btn")
+                        ) {
+                            Text("첫 번째 조건 알림 생성", color = Color.Black, fontWeight = FontWeight.Bold)
                         }
                     }
                 }
@@ -148,7 +164,8 @@ fun RulesListScreen(
                         Card(
                             modifier = Modifier.fillMaxWidth().testTag("rule_card_${rule.id}"),
                             shape = RoundedCornerShape(14.dp),
-                            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
+                            colors = CardDefaults.cardColors(containerColor = DarkSurface),
+                            border = androidx.compose.foundation.BorderStroke(1.dp, DarkBorder)
                         ) {
                             Column(modifier = Modifier.padding(14.dp)) {
                                 Row(
@@ -163,18 +180,26 @@ fun RulesListScreen(
                                         Surface(
                                             shape = RoundedCornerShape(6.dp),
                                             color = when (rule.scope) {
-                                                RuleScope.SPECIFIC -> MaterialTheme.colorScheme.primary
+                                                RuleScope.SPECIFIC -> NeonCyan.copy(alpha = 0.2f)
                                                 RuleScope.ALL_KOSPI -> Color(0xFF1E3A8A)
                                                 RuleScope.ALL_KOSDAQ -> Color(0xFF065F46)
                                                 RuleScope.ALL_US -> Color(0xFF581C87)
-                                                RuleScope.FAVORITES -> AccentGold
-                                            }
+                                                RuleScope.FAVORITES -> NeonAmber.copy(alpha = 0.2f)
+                                            },
+                                            border = androidx.compose.foundation.BorderStroke(
+                                                1.dp,
+                                                when (rule.scope) {
+                                                    RuleScope.SPECIFIC -> NeonCyan
+                                                    RuleScope.FAVORITES -> NeonAmber
+                                                    else -> DarkBorder
+                                                }
+                                            )
                                         ) {
                                             Text(
                                                 text = if (rule.scope == RuleScope.SPECIFIC && rule.targetSymbolName.isNotBlank()) rule.targetSymbolName else rule.scope.displayName,
                                                 fontSize = 11.sp,
                                                 fontWeight = FontWeight.Bold,
-                                                color = Color.White,
+                                                color = if (rule.scope == RuleScope.SPECIFIC) NeonCyan else Color.White,
                                                 modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
                                             )
                                         }
@@ -190,6 +215,12 @@ fun RulesListScreen(
                                     Switch(
                                         checked = rule.isEnabled,
                                         onCheckedChange = { onToggleRule(rule.id, it) },
+                                        colors = SwitchDefaults.colors(
+                                            checkedThumbColor = Color.Black,
+                                            checkedTrackColor = NeonCyan,
+                                            uncheckedThumbColor = TextMuted,
+                                            uncheckedTrackColor = DarkSurfaceVariant
+                                        ),
                                         modifier = Modifier.testTag("rule_manage_switch_${rule.id}")
                                     )
                                 }
@@ -206,12 +237,13 @@ fun RulesListScreen(
                                             text = "조건: ${rule.formattedSummary()}",
                                             fontSize = 12.sp,
                                             fontWeight = FontWeight.SemiBold,
-                                            color = StockRed
+                                            color = NeonGreen
                                         )
                                         Spacer(modifier = Modifier.height(2.dp))
                                         Text(
                                             text = "주기: ${rule.timeframe.label} | 쿨다운: ${rule.cooldownMinutes}분",
                                             fontSize = 11.sp,
+                                            fontFamily = FontFamily.Monospace,
                                             color = TextSecondary
                                         )
                                     }
@@ -233,9 +265,9 @@ fun RulesListScreen(
                                     val dateStr = SimpleDateFormat("MM/dd HH:mm", Locale.KOREA).format(Date(rule.lastTriggeredAt))
                                     Spacer(modifier = Modifier.height(4.dp))
                                     Row(verticalAlignment = Alignment.CenterVertically) {
-                                        Icon(imageVector = Icons.Filled.AlarmOn, contentDescription = null, tint = AccentGold, modifier = Modifier.size(12.dp))
+                                        Icon(imageVector = Icons.Filled.AlarmOn, contentDescription = null, tint = NeonAmber, modifier = Modifier.size(12.dp))
                                         Spacer(modifier = Modifier.width(4.dp))
-                                        Text("최근 발동: $dateStr", fontSize = 10.sp, color = TextMuted)
+                                        Text("최근 발동: $dateStr", fontSize = 10.sp, fontFamily = FontFamily.Monospace, color = TextMuted)
                                     }
                                 }
                             }

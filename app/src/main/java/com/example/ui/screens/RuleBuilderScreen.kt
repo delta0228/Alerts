@@ -1,6 +1,7 @@
 package com.example.ui.screens
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -31,15 +32,15 @@ import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilterChip
-import androidx.compose.material3.FilterChipDefaults
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Slider
+import androidx.compose.material3.SliderDefaults
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
@@ -55,6 +56,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
@@ -66,10 +68,14 @@ import com.example.model.RuleCategory
 import com.example.model.RuleScope
 import com.example.model.RuleType
 import com.example.model.Stock
-import com.example.ui.theme.AccentGold
-import com.example.ui.theme.BrandPrimary
-import com.example.ui.theme.BrandPrimaryLight
-import com.example.ui.theme.StockRed
+import com.example.ui.theme.DarkBorder
+import com.example.ui.theme.DarkOledBackground
+import com.example.ui.theme.DarkSurface
+import com.example.ui.theme.DarkSurfaceVariant
+import com.example.ui.theme.NeonAmber
+import com.example.ui.theme.NeonCyan
+import com.example.ui.theme.NeonGreen
+import com.example.ui.theme.NeonRed
 import com.example.ui.theme.TextMuted
 import com.example.ui.theme.TextPrimary
 import com.example.ui.theme.TextSecondary
@@ -91,7 +97,7 @@ fun RuleBuilderScreen(
             if (initialStock != null && initialRuleType != null) {
                 "${initialStock.name} ${initialRuleType.title}"
             } else if (initialStock != null) {
-                "${initialStock.name} 조건 알림"
+                "${initialStock.name} 온디바이스 알림"
             } else {
                 "맞춤형 기술 지표 알림"
             }
@@ -136,7 +142,7 @@ fun RuleBuilderScreen(
             TopAppBar(
                 title = {
                     Text(
-                        text = "알림 규칙 생성 (Rule Builder)",
+                        text = "온디바이스 알림 규칙 빌더",
                         fontWeight = FontWeight.Bold,
                         fontSize = 18.sp,
                         color = TextPrimary
@@ -155,17 +161,17 @@ fun RuleBuilderScreen(
                         Icon(
                             imageVector = Icons.Filled.AutoGraph,
                             contentDescription = "백테스트",
-                            tint = BrandPrimaryLight
+                            tint = NeonCyan
                         )
                     }
                 },
-                colors = TopAppBarDefaults.topAppBarColors(containerColor = MaterialTheme.colorScheme.background)
+                colors = TopAppBarDefaults.topAppBarColors(containerColor = DarkOledBackground)
             )
         },
         bottomBar = {
             Surface(
-                color = MaterialTheme.colorScheme.surface,
-                tonalElevation = 8.dp,
+                color = DarkSurface,
+                border = androidx.compose.foundation.BorderStroke(1.dp, DarkBorder),
                 modifier = Modifier.fillMaxWidth()
             ) {
                 Row(
@@ -183,12 +189,12 @@ fun RuleBuilderScreen(
                                 param2 = param2
                             )
                         },
-                        colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
+                        colors = ButtonDefaults.buttonColors(containerColor = DarkSurfaceVariant),
                         modifier = Modifier.weight(1f).testTag("test_rule_btn")
                     ) {
-                        Icon(imageVector = Icons.Filled.PlayArrow, contentDescription = null, tint = AccentGold, modifier = Modifier.size(16.dp))
+                        Icon(imageVector = Icons.Filled.PlayArrow, contentDescription = null, tint = NeonAmber, modifier = Modifier.size(16.dp))
                         Spacer(modifier = Modifier.width(4.dp))
-                        Text("조건 테스트", color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 13.sp)
+                        Text("조건 테스트", color = TextPrimary, fontSize = 13.sp)
                     }
 
                     Button(
@@ -207,12 +213,12 @@ fun RuleBuilderScreen(
                             )
                             onSaveRule(newRule)
                         },
-                        colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary),
+                        colors = ButtonDefaults.buttonColors(containerColor = NeonCyan),
                         modifier = Modifier.weight(1.3f).testTag("save_rule_submit_btn")
                     ) {
-                        Icon(imageVector = Icons.Filled.Check, contentDescription = null, tint = Color.White, modifier = Modifier.size(16.dp))
+                        Icon(imageVector = Icons.Filled.Check, contentDescription = null, tint = Color.Black, modifier = Modifier.size(16.dp))
                         Spacer(modifier = Modifier.width(6.dp))
-                        Text("규칙 저장 및 활성화", color = Color.White, fontWeight = FontWeight.Bold)
+                        Text("규칙 저장 및 활성화", color = Color.Black, fontWeight = FontWeight.Bold)
                     }
                 }
             }
@@ -221,7 +227,7 @@ fun RuleBuilderScreen(
         Column(
             modifier = modifier
                 .fillMaxSize()
-                .background(MaterialTheme.colorScheme.background)
+                .background(DarkOledBackground)
                 .padding(innerPadding)
                 .padding(horizontal = 16.dp)
                 .verticalScroll(rememberScrollState()),
@@ -231,8 +237,16 @@ fun RuleBuilderScreen(
             OutlinedTextField(
                 value = ruleName,
                 onValueChange = { ruleName = it },
-                label = { Text("알림 규칙 이름") },
-                placeholder = { Text("예: 삼성전자 5일선 골든크로스") },
+                label = { Text("알림 규칙 이름", color = TextSecondary) },
+                placeholder = { Text("예: 삼성전자 5일선 골든크로스", color = TextMuted) },
+                colors = OutlinedTextFieldDefaults.colors(
+                    focusedTextColor = TextPrimary,
+                    unfocusedTextColor = TextPrimary,
+                    focusedBorderColor = NeonCyan,
+                    unfocusedBorderColor = DarkBorder,
+                    focusedContainerColor = DarkSurface,
+                    unfocusedContainerColor = DarkSurface
+                ),
                 modifier = Modifier.fillMaxWidth().testTag("rule_name_input"),
                 singleLine = true
             )
@@ -244,12 +258,22 @@ fun RuleBuilderScreen(
                     verticalArrangement = Arrangement.spacedBy(6.dp)
                 ) {
                     RuleScope.values().forEach { scope ->
-                        FilterChip(
-                            selected = selectedScope == scope,
+                        val isSelected = selectedScope == scope
+                        Surface(
                             onClick = { selectedScope = scope },
-                            label = { Text(scope.displayName, fontSize = 12.sp) },
+                            shape = RoundedCornerShape(8.dp),
+                            color = if (isSelected) NeonCyan.copy(alpha = 0.2f) else DarkOledBackground,
+                            border = androidx.compose.foundation.BorderStroke(1.dp, if (isSelected) NeonCyan else DarkBorder),
                             modifier = Modifier.testTag("scope_chip_${scope.name}")
-                        )
+                        ) {
+                            Text(
+                                text = scope.displayName,
+                                fontSize = 12.sp,
+                                fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal,
+                                color = if (isSelected) NeonCyan else TextSecondary,
+                                modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp)
+                            )
+                        }
                     }
                 }
 
@@ -271,14 +295,15 @@ fun RuleBuilderScreen(
                                     }
                                 },
                                 shape = RoundedCornerShape(8.dp),
-                                color = if (isChosen) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.surfaceVariant,
+                                color = if (isChosen) NeonCyan else DarkOledBackground,
+                                border = androidx.compose.foundation.BorderStroke(1.dp, if (isChosen) NeonCyan else DarkBorder),
                                 modifier = Modifier.testTag("select_stock_${stock.symbol}")
                             ) {
                                 Text(
                                     text = stock.name,
                                     fontSize = 11.sp,
                                     fontWeight = if (isChosen) FontWeight.Bold else FontWeight.Normal,
-                                    color = if (isChosen) Color.White else MaterialTheme.colorScheme.onSurfaceVariant,
+                                    color = if (isChosen) Color.Black else TextSecondary,
                                     modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
                                 )
                             }
@@ -298,7 +323,8 @@ fun RuleBuilderScreen(
                         Surface(
                             onClick = { selectedTimeframe = tf },
                             shape = RoundedCornerShape(8.dp),
-                            color = if (isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.surfaceVariant,
+                            color = if (isSelected) NeonCyan else DarkOledBackground,
+                            border = androidx.compose.foundation.BorderStroke(1.dp, if (isSelected) NeonCyan else DarkBorder),
                             modifier = Modifier.weight(1f).testTag("timeframe_btn_${tf.name}")
                         ) {
                             Box(contentAlignment = Alignment.Center, modifier = Modifier.padding(vertical = 8.dp)) {
@@ -306,7 +332,7 @@ fun RuleBuilderScreen(
                                     text = tf.label,
                                     fontSize = 12.sp,
                                     fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal,
-                                    color = if (isSelected) Color.White else MaterialTheme.colorScheme.onSurfaceVariant
+                                    color = if (isSelected) Color.Black else TextSecondary
                                 )
                             }
                         }
@@ -314,28 +340,38 @@ fun RuleBuilderScreen(
                 }
             }
 
-            // Step 3: Rule Category & Condition Type
+            // Step 3: Trigger Condition
             SectionCard(title = "3. 발동 조건 유형 (Trigger Condition)") {
                 FlowRow(
                     horizontalArrangement = Arrangement.spacedBy(8.dp),
                     verticalArrangement = Arrangement.spacedBy(6.dp)
                 ) {
                     RuleCategory.values().forEach { cat ->
-                        FilterChip(
-                            selected = selectedCategory == cat,
+                        val isSelected = selectedCategory == cat
+                        Surface(
                             onClick = {
                                 selectedCategory = cat
                                 val firstInCat = RuleType.values().firstOrNull { it.category == cat }
                                 if (firstInCat != null) selectedRuleType = firstInCat
                             },
-                            label = { Text(cat.title, fontSize = 12.sp) },
+                            shape = RoundedCornerShape(8.dp),
+                            color = if (isSelected) DarkSurfaceVariant else DarkOledBackground,
+                            border = androidx.compose.foundation.BorderStroke(1.dp, if (isSelected) NeonCyan else DarkBorder),
                             modifier = Modifier.testTag("category_chip_${cat.name}")
-                        )
+                        ) {
+                            Text(
+                                text = cat.title,
+                                fontSize = 12.sp,
+                                fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal,
+                                color = if (isSelected) NeonCyan else TextSecondary,
+                                modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp)
+                            )
+                        }
                     }
                 }
 
                 Spacer(modifier = Modifier.height(10.dp))
-                HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
+                HorizontalDivider(color = DarkBorder)
                 Spacer(modifier = Modifier.height(8.dp))
 
                 // Condition types in selected category
@@ -362,8 +398,9 @@ fun RuleBuilderScreen(
                                 .testTag("rule_type_card_${type.name}"),
                             shape = RoundedCornerShape(10.dp),
                             colors = CardDefaults.cardColors(
-                                containerColor = if (isSelected) MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.surfaceVariant
-                            )
+                                containerColor = if (isSelected) DarkSurfaceVariant else DarkSurface
+                            ),
+                            border = androidx.compose.foundation.BorderStroke(1.dp, if (isSelected) NeonCyan else DarkBorder)
                         ) {
                             Row(
                                 modifier = Modifier
@@ -376,16 +413,16 @@ fun RuleBuilderScreen(
                                         text = type.title,
                                         fontWeight = FontWeight.Bold,
                                         fontSize = 13.sp,
-                                        color = if (isSelected) MaterialTheme.colorScheme.onPrimaryContainer else TextPrimary
+                                        color = if (isSelected) NeonCyan else TextPrimary
                                     )
                                     Text(
                                         text = type.templateText,
                                         fontSize = 11.sp,
-                                        color = if (isSelected) MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.8f) else TextSecondary
+                                        color = TextSecondary
                                     )
                                 }
                                 if (isSelected) {
-                                    Icon(imageVector = Icons.Filled.Check, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
+                                    Icon(imageVector = Icons.Filled.Check, contentDescription = null, tint = NeonCyan)
                                 }
                             }
                         }
@@ -400,7 +437,15 @@ fun RuleBuilderScreen(
                         OutlinedTextField(
                             value = thresholdValue.toLong().toString(),
                             onValueChange = { thresholdValue = it.toDoubleOrNull() ?: thresholdValue },
-                            label = { Text("목표 기준 가격 (원)") },
+                            label = { Text("목표 기준 가격 (원)", color = TextSecondary) },
+                            colors = OutlinedTextFieldDefaults.colors(
+                                focusedTextColor = TextPrimary,
+                                unfocusedTextColor = TextPrimary,
+                                focusedBorderColor = NeonCyan,
+                                unfocusedBorderColor = DarkBorder,
+                                focusedContainerColor = DarkOledBackground,
+                                unfocusedContainerColor = DarkOledBackground
+                            ),
                             keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                             modifier = Modifier.fillMaxWidth().testTag("price_threshold_input")
                         )
@@ -412,13 +457,14 @@ fun RuleBuilderScreen(
                                 horizontalArrangement = Arrangement.SpaceBetween
                             ) {
                                 Text("기준 등락률: ", fontSize = 13.sp, color = TextSecondary)
-                                Text("%.1f%%".format(thresholdValue), fontSize = 14.sp, fontWeight = FontWeight.Bold, color = StockRed)
+                                Text("%.1f%%".format(thresholdValue), fontSize = 14.sp, fontFamily = FontFamily.Monospace, fontWeight = FontWeight.Bold, color = NeonGreen)
                             }
                             Slider(
                                 value = thresholdValue.toFloat(),
                                 onValueChange = { thresholdValue = it.toDouble() },
                                 valueRange = 1f..30f,
                                 steps = 28,
+                                colors = SliderDefaults.colors(thumbColor = NeonGreen, activeTrackColor = NeonGreen),
                                 modifier = Modifier.testTag("change_rate_slider")
                             )
                         }
@@ -431,14 +477,30 @@ fun RuleBuilderScreen(
                             OutlinedTextField(
                                 value = param1.toString(),
                                 onValueChange = { param1 = it.toIntOrNull() ?: param1 },
-                                label = { Text("단기 이평 (봉)") },
+                                label = { Text("단기 이평 (봉)", color = TextSecondary) },
+                                colors = OutlinedTextFieldDefaults.colors(
+                                    focusedTextColor = TextPrimary,
+                                    unfocusedTextColor = TextPrimary,
+                                    focusedBorderColor = NeonCyan,
+                                    unfocusedBorderColor = DarkBorder,
+                                    focusedContainerColor = DarkOledBackground,
+                                    unfocusedContainerColor = DarkOledBackground
+                                ),
                                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                                 modifier = Modifier.weight(1f).testTag("ma_fast_input")
                             )
                             OutlinedTextField(
                                 value = param2.toString(),
                                 onValueChange = { param2 = it.toIntOrNull() ?: param2 },
-                                label = { Text("장기 이평 (봉)") },
+                                label = { Text("장기 이평 (봉)", color = TextSecondary) },
+                                colors = OutlinedTextFieldDefaults.colors(
+                                    focusedTextColor = TextPrimary,
+                                    unfocusedTextColor = TextPrimary,
+                                    focusedBorderColor = NeonCyan,
+                                    unfocusedBorderColor = DarkBorder,
+                                    focusedContainerColor = DarkOledBackground,
+                                    unfocusedContainerColor = DarkOledBackground
+                                ),
                                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                                 modifier = Modifier.weight(1f).testTag("ma_slow_input")
                             )
@@ -451,13 +513,14 @@ fun RuleBuilderScreen(
                                 horizontalArrangement = Arrangement.SpaceBetween
                             ) {
                                 Text("RSI(14) 기준 임계값: ", fontSize = 13.sp, color = TextSecondary)
-                                Text("%.0f".format(thresholdValue), fontSize = 14.sp, fontWeight = FontWeight.Bold, color = AccentGold)
+                                Text("%.0f".format(thresholdValue), fontSize = 14.sp, fontFamily = FontFamily.Monospace, fontWeight = FontWeight.Bold, color = NeonAmber)
                             }
                             Slider(
                                 value = thresholdValue.toFloat(),
                                 onValueChange = { thresholdValue = it.toDouble() },
                                 valueRange = 10f..90f,
                                 steps = 79,
+                                colors = SliderDefaults.colors(thumbColor = NeonAmber, activeTrackColor = NeonAmber),
                                 modifier = Modifier.testTag("rsi_slider")
                             )
                         }
@@ -469,19 +532,20 @@ fun RuleBuilderScreen(
                                 horizontalArrangement = Arrangement.SpaceBetween
                             ) {
                                 Text("평균 거래량 대비 배율: ", fontSize = 13.sp, color = TextSecondary)
-                                Text("%.1f배 폭증".format(thresholdValue), fontSize = 14.sp, fontWeight = FontWeight.Bold, color = BrandPrimary)
+                                Text("%.1f배 폭증".format(thresholdValue), fontSize = 14.sp, fontFamily = FontFamily.Monospace, fontWeight = FontWeight.Bold, color = NeonCyan)
                             }
                             Slider(
                                 value = thresholdValue.toFloat(),
                                 onValueChange = { thresholdValue = it.toDouble() },
                                 valueRange = 1.2f..10f,
                                 steps = 44,
+                                colors = SliderDefaults.colors(thumbColor = NeonCyan, activeTrackColor = NeonCyan),
                                 modifier = Modifier.testTag("volume_slider")
                             )
                         }
                     }
                     else -> {
-                        Text("선택한 조건은 자동으로 캔들 차트의 볼린저밴드 수식에 따라 산출됩니다.", fontSize = 12.sp, color = TextSecondary)
+                        Text("선택한 조건은 온디바이스에서 볼린저밴드 공식으로 자동 산출됩니다.", fontSize = 12.sp, color = TextSecondary)
                     }
                 }
             }
@@ -500,7 +564,8 @@ fun RuleBuilderScreen(
                         Surface(
                             onClick = { cooldownMinutes = mins },
                             shape = RoundedCornerShape(8.dp),
-                            color = if (isSelected) MaterialTheme.colorScheme.secondaryContainer else MaterialTheme.colorScheme.surfaceVariant,
+                            color = if (isSelected) NeonCyan else DarkOledBackground,
+                            border = androidx.compose.foundation.BorderStroke(1.dp, if (isSelected) NeonCyan else DarkBorder),
                             modifier = Modifier.weight(1f).testTag("cooldown_chip_$mins")
                         ) {
                             Box(contentAlignment = Alignment.Center, modifier = Modifier.padding(vertical = 8.dp)) {
@@ -508,7 +573,7 @@ fun RuleBuilderScreen(
                                     text = label,
                                     fontSize = 12.sp,
                                     fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal,
-                                    color = if (isSelected) MaterialTheme.colorScheme.onSecondaryContainer else TextSecondary
+                                    color = if (isSelected) Color.Black else TextSecondary
                                 )
                             }
                         }
@@ -521,14 +586,15 @@ fun RuleBuilderScreen(
                 Card(
                     modifier = Modifier.fillMaxWidth().testTag("test_scan_results_container"),
                     shape = RoundedCornerShape(12.dp),
-                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
+                    colors = CardDefaults.cardColors(containerColor = DarkSurface),
+                    border = androidx.compose.foundation.BorderStroke(1.dp, NeonAmber)
                 ) {
                     Column(modifier = Modifier.padding(14.dp)) {
                         Row(verticalAlignment = Alignment.CenterVertically) {
-                            Icon(imageVector = Icons.Filled.Tune, contentDescription = null, tint = AccentGold, modifier = Modifier.size(16.dp))
+                            Icon(imageVector = Icons.Filled.Tune, contentDescription = null, tint = NeonAmber, modifier = Modifier.size(16.dp))
                             Spacer(modifier = Modifier.width(6.dp))
                             Text(
-                                text = "실시간 조건 테스트 결과: ${testScanResults!!.size}개 종목 포착",
+                                text = "온디바이스 조건 테스트 결과: ${testScanResults!!.size}개 종목 포착",
                                 fontWeight = FontWeight.Bold,
                                 fontSize = 13.sp,
                                 color = TextPrimary
@@ -544,7 +610,7 @@ fun RuleBuilderScreen(
                                     horizontalArrangement = Arrangement.SpaceBetween
                                 ) {
                                     Text(stock.name, fontSize = 12.sp, fontWeight = FontWeight.Bold, color = TextPrimary)
-                                    Text(msg, fontSize = 11.sp, color = StockRed)
+                                    Text(msg, fontSize = 11.sp, color = NeonGreen)
                                 }
                             }
                         }
@@ -564,7 +630,8 @@ private fun SectionCard(
 ) {
     Card(
         shape = RoundedCornerShape(14.dp),
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
+        colors = CardDefaults.cardColors(containerColor = DarkSurface),
+        border = androidx.compose.foundation.BorderStroke(1.dp, DarkBorder),
         modifier = Modifier.fillMaxWidth()
     ) {
         Column(modifier = Modifier.padding(14.dp)) {

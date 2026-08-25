@@ -3,6 +3,7 @@ package com.example.ui.components
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.gestures.detectDragGestures
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.Arrangement
@@ -16,8 +17,10 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.ui.draw.clip
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ShowChart
 import androidx.compose.material.icons.filled.Timeline
@@ -86,8 +89,8 @@ fun CandlestickChart(
     onTimeframeSelected: (ChartTimeframe) -> Unit,
     modifier: Modifier = Modifier
 ) {
-    var showMA by remember { mutableStateOf(true) }
-    var showBollinger by remember { mutableStateOf(true) }
+    var showMA by remember { mutableStateOf(false) } // Hidden by default for minimal 3-second glanceable chart
+    var showBollinger by remember { mutableStateOf(false) }
     var selectedSubIndicator by remember { mutableStateOf(SubIndicatorType.VOLUME) }
     var scrubIndex by remember { mutableStateOf<Int?>(null) }
 
@@ -96,51 +99,56 @@ fun CandlestickChart(
     Column(
         modifier = modifier
             .fillMaxWidth()
-            .background(MaterialTheme.colorScheme.surface, RoundedCornerShape(16.dp))
+            .clip(RoundedCornerShape(16.dp))
+            .background(com.example.ui.theme.DarkSurface)
+            .border(1.dp, com.example.ui.theme.DarkBorder, RoundedCornerShape(16.dp))
             .padding(12.dp)
             .testTag("candlestick_chart_container")
     ) {
-        // Timeframe selector row
+        // Timeframe selector row & Sub-Indicator Tabs
         Row(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically
         ) {
+            // Timeframe Pills
             Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
                 ChartTimeframe.values().forEach { tf ->
                     val isSelected = tf == selectedTimeframe
                     Surface(
                         onClick = { onTimeframeSelected(tf) },
                         shape = RoundedCornerShape(8.dp),
-                        color = if (isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.surfaceVariant,
+                        color = if (isSelected) com.example.ui.theme.NeonCyan else com.example.ui.theme.DarkSurfaceVariant,
                         modifier = Modifier.testTag("tf_button_${tf.name}")
                     ) {
                         Text(
                             text = tf.label,
-                            color = if (isSelected) Color.White else MaterialTheme.colorScheme.onSurfaceVariant,
-                            fontSize = 12.sp,
-                            fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal,
-                            modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
+                            color = if (isSelected) Color.Black else com.example.ui.theme.TextSecondary,
+                            fontSize = 11.sp,
+                            fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
+                            modifier = Modifier.padding(horizontal = 7.dp, vertical = 4.dp)
                         )
                     }
                 }
             }
 
-            // Sub Indicator selector
+            // Sub Indicator Floating Pills (VOL, RSI, MACD)
             Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
                 SubIndicatorType.values().forEach { sub ->
                     val isSelected = sub == selectedSubIndicator
                     Surface(
                         onClick = { selectedSubIndicator = sub },
                         shape = RoundedCornerShape(8.dp),
-                        color = if (isSelected) MaterialTheme.colorScheme.secondaryContainer else Color.Transparent,
+                        color = if (isSelected) com.example.ui.theme.NeonCyan.copy(alpha = 0.2f) else Color.Transparent,
+                        border = if (isSelected) androidx.compose.foundation.BorderStroke(1.dp, com.example.ui.theme.NeonCyan) else null,
                         modifier = Modifier.testTag("sub_indicator_${sub.name}")
                     ) {
                         Text(
                             text = sub.label,
-                            color = if (isSelected) MaterialTheme.colorScheme.onSecondaryContainer else TextMuted,
+                            color = if (isSelected) com.example.ui.theme.NeonCyan else TextMuted,
                             fontSize = 11.sp,
-                            fontWeight = FontWeight.Medium,
+                            fontFamily = androidx.compose.ui.text.font.FontFamily.Monospace,
+                            fontWeight = FontWeight.Bold,
                             modifier = Modifier.padding(horizontal = 6.dp, vertical = 4.dp)
                         )
                     }
@@ -150,53 +158,41 @@ fun CandlestickChart(
 
         Spacer(modifier = Modifier.height(8.dp))
 
-        // Indicator Toggle Chips & Legend
-        FlowRow(
+        // Floating Pill Buttons for Technical Overlay Indicators (MA, Bollinger)
+        Row(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.spacedBy(8.dp),
-            verticalArrangement = Arrangement.Center
+            verticalAlignment = Alignment.CenterVertically
         ) {
-            FilterChip(
-                selected = showMA,
+            Surface(
                 onClick = { showMA = !showMA },
-                label = { Text("이평선 (5/20/60)", fontSize = 11.sp) },
-                colors = FilterChipDefaults.filterChipColors(
-                    selectedContainerColor = MaterialTheme.colorScheme.primaryContainer,
-                    selectedLabelColor = MaterialTheme.colorScheme.onPrimaryContainer
-                ),
-                modifier = Modifier.height(28.dp)
-            )
-            FilterChip(
-                selected = showBollinger,
-                onClick = { showBollinger = !showBollinger },
-                label = { Text("볼린저밴드 (20,2)", fontSize = 11.sp) },
-                colors = FilterChipDefaults.filterChipColors(
-                    selectedContainerColor = MaterialTheme.colorScheme.primaryContainer,
-                    selectedLabelColor = MaterialTheme.colorScheme.onPrimaryContainer
-                ),
-                modifier = Modifier.height(28.dp)
-            )
+                shape = RoundedCornerShape(20.dp),
+                color = if (showMA) com.example.ui.theme.IndicatorMA5.copy(alpha = 0.2f) else com.example.ui.theme.DarkSurfaceVariant,
+                border = androidx.compose.foundation.BorderStroke(1.dp, if (showMA) com.example.ui.theme.IndicatorMA5 else com.example.ui.theme.DarkBorder),
+                modifier = Modifier.testTag("toggle_ma_pill")
+            ) {
+                Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)) {
+                    Box(modifier = Modifier.size(6.dp).clip(androidx.compose.foundation.shape.CircleShape).background(if (showMA) com.example.ui.theme.IndicatorMA5 else TextMuted))
+                    Spacer(modifier = Modifier.width(4.dp))
+                    Text("MA (5/20/60)", fontSize = 11.sp, color = if (showMA) com.example.ui.theme.IndicatorMA5 else TextMuted, fontWeight = FontWeight.Bold)
+                }
+            }
 
-            // Dynamic MA values display
-            if (showMA && visibleCandles.isNotEmpty()) {
-                val lastCandle = scrubIndex?.let { visibleCandles.getOrNull(it) } ?: visibleCandles.last()
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(6.dp),
-                    modifier = Modifier.padding(top = 4.dp)
-                ) {
-                    lastCandle.indicators.ma5?.let {
-                        Text("MA5: %,.0f".format(it), color = IndicatorMA5, fontSize = 10.sp, fontWeight = FontWeight.Bold)
-                    }
-                    lastCandle.indicators.ma20?.let {
-                        Text("MA20: %,.0f".format(it), color = IndicatorMA20, fontSize = 10.sp, fontWeight = FontWeight.Bold)
-                    }
-                    lastCandle.indicators.ma60?.let {
-                        Text("MA60: %,.0f".format(it), color = IndicatorMA60, fontSize = 10.sp, fontWeight = FontWeight.Bold)
-                    }
+            Surface(
+                onClick = { showBollinger = !showBollinger },
+                shape = RoundedCornerShape(20.dp),
+                color = if (showBollinger) com.example.ui.theme.IndicatorBollinger.copy(alpha = 0.2f) else com.example.ui.theme.DarkSurfaceVariant,
+                border = androidx.compose.foundation.BorderStroke(1.dp, if (showBollinger) com.example.ui.theme.IndicatorBollinger else com.example.ui.theme.DarkBorder),
+                modifier = Modifier.testTag("toggle_bb_pill")
+            ) {
+                Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)) {
+                    Box(modifier = Modifier.size(6.dp).clip(androidx.compose.foundation.shape.CircleShape).background(if (showBollinger) com.example.ui.theme.IndicatorBollinger else TextMuted))
+                    Spacer(modifier = Modifier.width(4.dp))
+                    Text("볼린저밴드 (20,2)", fontSize = 11.sp, color = if (showBollinger) com.example.ui.theme.IndicatorBollinger else TextMuted, fontWeight = FontWeight.Bold)
                 }
             }
         }
+
 
         Spacer(modifier = Modifier.height(6.dp))
 

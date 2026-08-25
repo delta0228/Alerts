@@ -22,6 +22,7 @@ import androidx.compose.material.icons.filled.Dns
 import androidx.compose.material.icons.filled.Schedule
 import androidx.compose.material.icons.filled.Storage
 import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.HorizontalDivider
@@ -41,10 +42,15 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
-import com.example.ui.theme.AccentGold
-import com.example.ui.theme.BrandSecondary
-import com.example.ui.theme.IndicatorMA5
-import com.example.ui.theme.StockRed
+import com.example.ui.theme.DarkBorder
+import com.example.ui.theme.DarkOledBackground
+import com.example.ui.theme.DarkSurface
+import com.example.ui.theme.DarkSurfaceVariant
+import com.example.ui.theme.NeonAmber
+import com.example.ui.theme.NeonCyan
+import com.example.ui.theme.NeonGreen
+import com.example.ui.theme.NeonRed
+import com.example.ui.theme.TextMuted
 import com.example.ui.theme.TextPrimary
 import com.example.ui.theme.TextSecondary
 
@@ -55,7 +61,8 @@ fun ArchitectureDocsDialog(
     Dialog(onDismissRequest = onDismiss) {
         Surface(
             shape = RoundedCornerShape(20.dp),
-            color = MaterialTheme.colorScheme.surface,
+            color = DarkSurface,
+            border = androidx.compose.foundation.BorderStroke(1.dp, DarkBorder),
             modifier = Modifier
                 .fillMaxWidth()
                 .heightIn(max = 680.dp)
@@ -76,7 +83,7 @@ fun ArchitectureDocsDialog(
                         Icon(
                             imageVector = Icons.Filled.AccountTree,
                             contentDescription = "Architecture",
-                            tint = MaterialTheme.colorScheme.primary,
+                            tint = NeonCyan,
                             modifier = Modifier.size(24.dp)
                         )
                         Spacer(modifier = Modifier.width(10.dp))
@@ -102,7 +109,7 @@ fun ArchitectureDocsDialog(
 
                 HorizontalDivider(
                     modifier = Modifier.padding(vertical = 12.dp),
-                    color = MaterialTheme.colorScheme.outlineVariant
+                    color = DarkBorder
                 )
 
                 // Scrollable Content
@@ -115,7 +122,7 @@ fun ArchitectureDocsDialog(
                     // Section 1: Recommended Tech Stack
                     DocSectionCard(
                         icon = Icons.Filled.Dns,
-                        iconTint = BrandSecondary,
+                        iconTint = NeonCyan,
                         title = "1. 추천 시스템 아키텍처 & 기술 스택"
                     ) {
                         Text(
@@ -134,7 +141,7 @@ fun ArchitectureDocsDialog(
                     // Section 2: Core Data Models & Schemas
                     DocSectionCard(
                         icon = Icons.Filled.Storage,
-                        iconTint = AccentGold,
+                        iconTint = NeonAmber,
                         title = "2. 핵심 데이터 모델 및 스키마 설계"
                     ) {
                         CodeBlock(
@@ -174,8 +181,8 @@ CREATE TABLE alert_histories (
                     // Section 3: Rule Evaluation & Indicator Formulas
                     DocSectionCard(
                         icon = Icons.Filled.Code,
-                        iconTint = IndicatorMA5,
-                        title = "3. 조건 검사 엔진 (Rule Evaluation Logic)"
+                        iconTint = NeonGreen,
+                        title = "3. 온디바이스 지표 계산 및 조건 검사 엔진"
                     ) {
                         Text(
                             text = "1. 골든크로스 / 데드크로스 검증:\n" +
@@ -195,12 +202,12 @@ CREATE TABLE alert_histories (
                     // Section 4: Development Roadmap Guidelines
                     DocSectionCard(
                         icon = Icons.Filled.Schedule,
-                        iconTint = StockRed,
+                        iconTint = NeonRed,
                         title = "4. 단계별 구현 가이드라인"
                     ) {
                         Text(
                             text = "Phase 1: 데이터 파이프라인 구축 (OpenAPI 연동 및 OHLCV 캔들 집계 엔진)\n" +
-                                    "Phase 2: 기술적 보조지표 연산 엔진 (SMA, EMA, RSI, MACD, Bollinger Bands)\n" +
+                                    "Phase 2: 온디바이스 기술적 보조지표 연산 엔진 (SMA, EMA, RSI, MACD, Bollinger Bands)\n" +
                                     "Phase 3: 룰 빌더 UI 및 룰 평가 엔진 (단일 종목 및 전시장 멀티스캔)\n" +
                                     "Phase 4: 백그라운드 워커 및 푸시 알림 (WorkManager, Notification Channel, FCM)\n" +
                                     "Phase 5: 인터랙티브 캔들 차트 및 스크러빙/툴팁 최적화 (Canvas GPU 렌더링)",
@@ -215,9 +222,10 @@ CREATE TABLE alert_histories (
 
                 Button(
                     onClick = onDismiss,
+                    colors = ButtonDefaults.buttonColors(containerColor = NeonCyan),
                     modifier = Modifier.fillMaxWidth().testTag("confirm_docs_btn")
                 ) {
-                    Text("확인 및 닫기")
+                    Text("확인 및 닫기", color = Color.Black, fontWeight = FontWeight.Bold)
                 }
             }
         }
@@ -233,7 +241,8 @@ private fun DocSectionCard(
 ) {
     Card(
         shape = RoundedCornerShape(12.dp),
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
+        colors = CardDefaults.cardColors(containerColor = DarkSurfaceVariant),
+        border = androidx.compose.foundation.BorderStroke(1.dp, DarkBorder),
         modifier = Modifier.fillMaxWidth()
     ) {
         Column(modifier = Modifier.padding(14.dp)) {
@@ -257,7 +266,8 @@ private fun DocSectionCard(
 private fun CodeBlock(code: String) {
     Surface(
         shape = RoundedCornerShape(8.dp),
-        color = Color(0xFF090D16),
+        color = DarkOledBackground,
+        border = androidx.compose.foundation.BorderStroke(1.dp, DarkBorder),
         modifier = Modifier.fillMaxWidth()
     ) {
         Text(

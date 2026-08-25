@@ -1,6 +1,7 @@
 package com.example.ui.screens
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -29,6 +30,7 @@ import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.TrendingUp
 import androidx.compose.material.icons.filled.Warning
 import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
@@ -47,6 +49,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -54,11 +57,18 @@ import com.example.data.StockDataManager
 import com.example.model.MarketType
 import com.example.model.RuleType
 import com.example.model.Stock
-import com.example.ui.theme.AccentGold
-import com.example.ui.theme.BrandPrimary
+import com.example.ui.theme.DarkBorder
+import com.example.ui.theme.DarkOledBackground
+import com.example.ui.theme.DarkSurface
+import com.example.ui.theme.DarkSurfaceVariant
 import com.example.ui.theme.IndicatorMA5
+import com.example.ui.theme.NeonAmber
+import com.example.ui.theme.NeonCyan
+import com.example.ui.theme.NeonGreen
+import com.example.ui.theme.NeonRed
 import com.example.ui.theme.StockBlue
 import com.example.ui.theme.StockRed
+import com.example.ui.theme.TabularRateBadge
 import com.example.ui.theme.TextMuted
 import com.example.ui.theme.TextPrimary
 import com.example.ui.theme.TextSecondary
@@ -84,18 +94,17 @@ fun ConditionScannerScreen(
 ) {
     val presets = remember {
         listOf(
-            ScanPreset("p1", "골든크로스 발생", "5일 이평선이 20일 이평선을 상향 돌파한 종목", Icons.Filled.TrendingUp, StockRed, RuleType.MA_GOLDEN_CROSS, 0.0, 5, 20),
-            ScanPreset("p2", "RSI 30 이하 과매도", "단기 과매도 구간으로 기술적 반등 유력 종목", Icons.Filled.Bolt, AccentGold, RuleType.RSI_OVERSOLD, 35.0),
-            ScanPreset("p3", "거래량 2배 폭증", "최근 20일 평균 대비 거래량이 200% 이상 급증", Icons.Filled.ElectricBolt, BrandPrimary, RuleType.VOLUME_SURGE, 1.8),
-            ScanPreset("p4", "볼린저밴드 하단 터치", "하단 밴드 지지선에서 저가 매수세 유입 구간", Icons.Filled.FilterAlt, IndicatorMA5, RuleType.BOLLINGER_LOWER_TOUCH, 0.0),
-            ScanPreset("p5", "당일 +2.5% 이상 급등", "장중 강한 모멘텀으로 전일 대비 급등 중인 종목", Icons.Filled.TrendingUp, StockRed, RuleType.CHANGE_RATE_SURGE, 2.0),
-            ScanPreset("p6", "데드크로스 경고", "5일선이 20일선을 하향 이탈한 하락 전환 종목", Icons.Filled.Warning, StockBlue, RuleType.MA_DEAD_CROSS, 0.0, 5, 20)
+            ScanPreset("p1", "골든크로스 발생", "5일 이평선이 20일 이평선을 상향 돌파한 종목", Icons.Filled.TrendingUp, NeonGreen, RuleType.MA_GOLDEN_CROSS, 0.0, 5, 20),
+            ScanPreset("p2", "RSI 30 이하 과매도", "단기 과매도 구간으로 기술적 반등 유력 종목", Icons.Filled.Bolt, NeonAmber, RuleType.RSI_OVERSOLD, 35.0),
+            ScanPreset("p3", "거래량 2배 폭증", "최근 20일 평균 대비 거래량이 200% 이상 급증", Icons.Filled.ElectricBolt, NeonCyan, RuleType.VOLUME_SURGE, 1.8),
+            ScanPreset("p4", "볼린저밴드 하단 터치", "하단 밴드 지지선에서 저가 매수세 유입 구간", Icons.Filled.FilterAlt, NeonCyan, RuleType.BOLLINGER_LOWER_TOUCH, 0.0),
+            ScanPreset("p5", "당일 +2.5% 이상 급등", "장중 강한 모멘텀으로 전일 대비 급등 중인 종목", Icons.Filled.TrendingUp, NeonGreen, RuleType.CHANGE_RATE_SURGE, 2.0),
+            ScanPreset("p6", "데드크로스 경고", "5일선이 20일선을 하향 이탈한 하락 전환 종목", Icons.Filled.Warning, NeonRed, RuleType.MA_DEAD_CROSS, 0.0, 5, 20)
         )
     }
 
     var selectedPreset by remember { mutableStateOf(presets.first()) }
     var scanResults by remember { mutableStateOf<List<Pair<Stock, String>>>(emptyList()) }
-    var isScanning by remember { mutableStateOf(false) }
 
     // Run initial scan
     remember(selectedPreset) {
@@ -110,19 +119,19 @@ fun ConditionScannerScreen(
     Column(
         modifier = modifier
             .fillMaxSize()
-            .background(MaterialTheme.colorScheme.background)
+            .background(DarkOledBackground)
             .padding(16.dp)
             .testTag("condition_scanner_screen")
     ) {
         // Header
         Text(
-            text = "실시간 조건 검색기",
+            text = "실시간 온디바이스 조건 검색기",
             style = MaterialTheme.typography.headlineSmall,
             fontWeight = FontWeight.Bold,
             color = TextPrimary
         )
         Text(
-            text = "원하는 기술적 지표 및 가격 조건을 만족하는 종목을 전시장 실시간 탐색합니다.",
+            text = "기술적 지표 및 가격 돌파 조건을 만족하는 종목을 기기 내부에서 실시간 탐색합니다.",
             fontSize = 12.sp,
             color = TextSecondary,
             modifier = Modifier.padding(top = 4.dp, bottom = 16.dp)
@@ -150,7 +159,11 @@ fun ConditionScannerScreen(
                         .testTag("preset_card_${preset.id}"),
                     shape = RoundedCornerShape(12.dp),
                     colors = CardDefaults.cardColors(
-                        containerColor = if (isSelected) MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.surfaceVariant
+                        containerColor = if (isSelected) DarkSurfaceVariant else DarkSurface
+                    ),
+                    border = androidx.compose.foundation.BorderStroke(
+                        1.dp,
+                        if (isSelected) NeonCyan else DarkBorder
                     )
                 ) {
                     Column(modifier = Modifier.padding(12.dp)) {
@@ -166,14 +179,14 @@ fun ConditionScannerScreen(
                                 text = preset.title,
                                 fontWeight = FontWeight.Bold,
                                 fontSize = 13.sp,
-                                color = if (isSelected) MaterialTheme.colorScheme.onPrimaryContainer else TextPrimary
+                                color = if (isSelected) NeonCyan else TextPrimary
                             )
                         }
                         Spacer(modifier = Modifier.height(4.dp))
                         Text(
                             text = preset.description,
                             fontSize = 11.sp,
-                            color = if (isSelected) MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.8f) else TextSecondary,
+                            color = TextSecondary,
                             maxLines = 2
                         )
                     }
@@ -191,15 +204,16 @@ fun ConditionScannerScreen(
         ) {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Text(
-                    text = "검색 결과: ",
+                    text = "포착 결과: ",
                     fontSize = 13.sp,
                     color = TextSecondary
                 )
                 Text(
-                    text = "${scanResults.size}개 종목 포착",
+                    text = "${scanResults.size}개 종목",
                     fontSize = 14.sp,
+                    fontFamily = FontFamily.Monospace,
                     fontWeight = FontWeight.Bold,
-                    color = MaterialTheme.colorScheme.primary
+                    color = NeonCyan
                 )
             }
 
@@ -212,11 +226,12 @@ fun ConditionScannerScreen(
                         selectedPreset.param2
                     )
                 },
+                colors = ButtonDefaults.buttonColors(containerColor = NeonCyan),
                 modifier = Modifier.testTag("refresh_scan_btn")
             ) {
-                Icon(imageVector = Icons.Filled.Search, contentDescription = null, modifier = Modifier.size(16.dp))
+                Icon(imageVector = Icons.Filled.Search, contentDescription = null, tint = Color.Black, modifier = Modifier.size(16.dp))
                 Spacer(modifier = Modifier.width(4.dp))
-                Text("실시간 재스캔", fontSize = 12.sp)
+                Text("실시간 재스캔", color = Color.Black, fontWeight = FontWeight.Bold, fontSize = 12.sp)
             }
         }
 
@@ -260,7 +275,8 @@ fun ConditionScannerScreen(
                             .clickable { onSelectStock(stock) }
                             .testTag("scan_result_item_${stock.symbol}"),
                         shape = RoundedCornerShape(12.dp),
-                        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
+                        colors = CardDefaults.cardColors(containerColor = DarkSurface),
+                        border = androidx.compose.foundation.BorderStroke(1.dp, DarkBorder)
                     ) {
                         Row(
                             modifier = Modifier
@@ -280,13 +296,14 @@ fun ConditionScannerScreen(
                                     Spacer(modifier = Modifier.width(6.dp))
                                     Surface(
                                         shape = RoundedCornerShape(4.dp),
-                                        color = MaterialTheme.colorScheme.primaryContainer
+                                        color = DarkSurfaceVariant
                                     ) {
                                         Text(
                                             text = stock.market.name,
                                             fontSize = 9.sp,
+                                            fontFamily = FontFamily.Monospace,
                                             fontWeight = FontWeight.Bold,
-                                            color = MaterialTheme.colorScheme.onPrimaryContainer,
+                                            color = NeonCyan,
                                             modifier = Modifier.padding(horizontal = 4.dp, vertical = 1.dp)
                                         )
                                     }
@@ -298,7 +315,7 @@ fun ConditionScannerScreen(
                                     text = message,
                                     fontSize = 12.sp,
                                     fontWeight = FontWeight.Medium,
-                                    color = StockRed
+                                    color = NeonGreen
                                 )
                             }
 
@@ -307,13 +324,13 @@ fun ConditionScannerScreen(
                                     text = "%,.0f원".format(stock.currentPrice),
                                     fontWeight = FontWeight.Bold,
                                     fontSize = 14.sp,
+                                    fontFamily = FontFamily.Monospace,
                                     color = TextPrimary
                                 )
                                 Text(
                                     text = "%+,.2f%%".format(stock.changeRate),
-                                    fontWeight = FontWeight.SemiBold,
-                                    fontSize = 12.sp,
-                                    color = if (stock.isRising) StockRed else StockBlue
+                                    style = TabularRateBadge,
+                                    color = if (stock.isRising) NeonGreen else NeonRed
                                 )
 
                                 Spacer(modifier = Modifier.height(6.dp))
@@ -321,15 +338,15 @@ fun ConditionScannerScreen(
                                 Surface(
                                     onClick = { onAddAlertForRule(stock, selectedPreset.ruleType) },
                                     shape = RoundedCornerShape(8.dp),
-                                    color = MaterialTheme.colorScheme.primary
+                                    color = NeonCyan
                                 ) {
                                     Row(
                                         verticalAlignment = Alignment.CenterVertically,
                                         modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
                                     ) {
-                                        Icon(imageVector = Icons.Filled.NotificationsActive, contentDescription = null, tint = Color.White, modifier = Modifier.size(12.dp))
+                                        Icon(imageVector = Icons.Filled.NotificationsActive, contentDescription = null, tint = Color.Black, modifier = Modifier.size(12.dp))
                                         Spacer(modifier = Modifier.width(4.dp))
-                                        Text("알림 등록", color = Color.White, fontSize = 11.sp, fontWeight = FontWeight.Bold)
+                                        Text("알림 등록", color = Color.Black, fontSize = 11.sp, fontWeight = FontWeight.Bold)
                                     }
                                 }
                             }
@@ -340,3 +357,4 @@ fun ConditionScannerScreen(
         }
     }
 }
+

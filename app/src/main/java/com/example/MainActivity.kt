@@ -112,7 +112,7 @@ fun StockAlertApp(viewModel: StockAlertViewModel) {
         bottomBar = {
             if (showBottomBar) {
                 NavigationBar(
-                    containerColor = MaterialTheme.colorScheme.surface,
+                    containerColor = com.example.ui.theme.DarkSurface,
                     modifier = Modifier
                         .windowInsetsPadding(WindowInsets.navigationBars)
                         .testTag("main_bottom_nav_bar")
@@ -123,8 +123,11 @@ fun StockAlertApp(viewModel: StockAlertViewModel) {
                         icon = { Icon(imageVector = Icons.Filled.ShowChart, contentDescription = "시세") },
                         label = { Text("시세") },
                         colors = NavigationBarItemDefaults.colors(
-                            selectedIconColor = MaterialTheme.colorScheme.onPrimaryContainer,
-                            indicatorColor = MaterialTheme.colorScheme.primaryContainer
+                            selectedIconColor = Color.Black,
+                            selectedTextColor = com.example.ui.theme.NeonCyan,
+                            unselectedIconColor = com.example.ui.theme.TextMuted,
+                            unselectedTextColor = com.example.ui.theme.TextMuted,
+                            indicatorColor = com.example.ui.theme.NeonCyan
                         ),
                         modifier = Modifier.testTag("nav_item_market")
                     )
@@ -135,8 +138,11 @@ fun StockAlertApp(viewModel: StockAlertViewModel) {
                         icon = { Icon(imageVector = Icons.Filled.AutoGraph, contentDescription = "백테스트") },
                         label = { Text("백테스트") },
                         colors = NavigationBarItemDefaults.colors(
-                            selectedIconColor = MaterialTheme.colorScheme.onPrimaryContainer,
-                            indicatorColor = MaterialTheme.colorScheme.primaryContainer
+                            selectedIconColor = Color.Black,
+                            selectedTextColor = com.example.ui.theme.NeonCyan,
+                            unselectedIconColor = com.example.ui.theme.TextMuted,
+                            unselectedTextColor = com.example.ui.theme.TextMuted,
+                            indicatorColor = com.example.ui.theme.NeonCyan
                         ),
                         modifier = Modifier.testTag("nav_item_backtest")
                     )
@@ -147,8 +153,11 @@ fun StockAlertApp(viewModel: StockAlertViewModel) {
                         icon = { Icon(imageVector = Icons.Filled.Bolt, contentDescription = "조건검색") },
                         label = { Text("조건검색") },
                         colors = NavigationBarItemDefaults.colors(
-                            selectedIconColor = MaterialTheme.colorScheme.onPrimaryContainer,
-                            indicatorColor = MaterialTheme.colorScheme.primaryContainer
+                            selectedIconColor = Color.Black,
+                            selectedTextColor = com.example.ui.theme.NeonCyan,
+                            unselectedIconColor = com.example.ui.theme.TextMuted,
+                            unselectedTextColor = com.example.ui.theme.TextMuted,
+                            indicatorColor = com.example.ui.theme.NeonCyan
                         ),
                         modifier = Modifier.testTag("nav_item_scanner")
                     )
@@ -159,8 +168,11 @@ fun StockAlertApp(viewModel: StockAlertViewModel) {
                         icon = { Icon(imageVector = Icons.Filled.ListAlt, contentDescription = "규칙관리") },
                         label = { Text("규칙관리") },
                         colors = NavigationBarItemDefaults.colors(
-                            selectedIconColor = MaterialTheme.colorScheme.onPrimaryContainer,
-                            indicatorColor = MaterialTheme.colorScheme.primaryContainer
+                            selectedIconColor = Color.Black,
+                            selectedTextColor = com.example.ui.theme.NeonCyan,
+                            unselectedIconColor = com.example.ui.theme.TextMuted,
+                            unselectedTextColor = com.example.ui.theme.TextMuted,
+                            indicatorColor = com.example.ui.theme.NeonCyan
                         ),
                         modifier = Modifier.testTag("nav_item_rules")
                     )
@@ -179,8 +191,11 @@ fun StockAlertApp(viewModel: StockAlertViewModel) {
                         },
                         label = { Text("알림내역") },
                         colors = NavigationBarItemDefaults.colors(
-                            selectedIconColor = MaterialTheme.colorScheme.onPrimaryContainer,
-                            indicatorColor = MaterialTheme.colorScheme.primaryContainer
+                            selectedIconColor = Color.Black,
+                            selectedTextColor = com.example.ui.theme.NeonCyan,
+                            unselectedIconColor = com.example.ui.theme.TextMuted,
+                            unselectedTextColor = com.example.ui.theme.TextMuted,
+                            indicatorColor = com.example.ui.theme.NeonCyan
                         ),
                         modifier = Modifier.testTag("nav_item_history")
                     )

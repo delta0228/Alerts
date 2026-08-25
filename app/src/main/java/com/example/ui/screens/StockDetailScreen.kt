@@ -1,6 +1,7 @@
 package com.example.ui.screens
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -20,6 +21,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.AddAlert
 import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.AutoGraph
+import androidx.compose.material.icons.filled.Bolt
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.NotificationsActive
 import androidx.compose.material.icons.filled.Star
@@ -48,8 +50,10 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -59,13 +63,25 @@ import com.example.model.ChartTimeframe
 import com.example.model.MarketType
 import com.example.model.Stock
 import com.example.ui.components.CandlestickChart
+import com.example.ui.components.OrderSide
+import com.example.ui.components.QuickOrderBottomSheet
 import com.example.ui.theme.AccentGold
-import com.example.ui.theme.BrandPrimary
-import com.example.ui.theme.BrandPrimaryLight
+import com.example.ui.theme.DarkBorder
+import com.example.ui.theme.DarkOledBackground
+import com.example.ui.theme.DarkSurface
+import com.example.ui.theme.DarkSurfaceVariant
 import com.example.ui.theme.IndicatorMA5
+import com.example.ui.theme.IndicatorMA20
 import com.example.ui.theme.IndicatorRSI
+import com.example.ui.theme.NeonAmber
+import com.example.ui.theme.NeonCyan
+import com.example.ui.theme.NeonGreen
+import com.example.ui.theme.NeonRed
 import com.example.ui.theme.StockBlue
 import com.example.ui.theme.StockRed
+import com.example.ui.theme.TabularPriceHeader
+import com.example.ui.theme.TabularPriceMedium
+import com.example.ui.theme.TabularRateBadge
 import com.example.ui.theme.TextMuted
 import com.example.ui.theme.TextPrimary
 import com.example.ui.theme.TextSecondary
@@ -85,6 +101,8 @@ fun StockDetailScreen(
     modifier: Modifier = Modifier
 ) {
     var selectedTimeframe by remember { mutableStateOf(ChartTimeframe.M5) }
+    var showQuickOrderSheet by remember { mutableStateOf(false) }
+
     val candles = remember(stock, selectedTimeframe) {
         dataManager.getCandles(stock.symbol, selectedTimeframe)
     }
@@ -109,6 +127,7 @@ fun StockDetailScreen(
                         Text(
                             text = stock.symbol,
                             fontSize = 12.sp,
+                            fontFamily = FontFamily.Monospace,
                             color = TextSecondary
                         )
                     }
@@ -123,35 +142,36 @@ fun StockDetailScreen(
                         Icon(
                             imageVector = if (stock.isFavorite) Icons.Filled.Star else Icons.Outlined.StarBorder,
                             contentDescription = "관심",
-                            tint = if (stock.isFavorite) AccentGold else TextSecondary
+                            tint = if (stock.isFavorite) NeonAmber else TextSecondary
                         )
                     }
                     IconButton(onClick = onAddAlert, modifier = Modifier.testTag("detail_add_alert_action_btn")) {
                         Icon(
                             imageVector = Icons.Filled.AddAlert,
                             contentDescription = "알림 생성",
-                            tint = MaterialTheme.colorScheme.primary
+                            tint = NeonCyan
                         )
                     }
                 },
-                colors = TopAppBarDefaults.topAppBarColors(containerColor = MaterialTheme.colorScheme.background)
+                colors = TopAppBarDefaults.topAppBarColors(containerColor = DarkOledBackground)
             )
         }
     ) { innerPadding ->
         Column(
             modifier = modifier
                 .fillMaxSize()
-                .background(MaterialTheme.colorScheme.background)
+                .background(DarkOledBackground)
                 .padding(innerPadding)
                 .padding(horizontal = 16.dp)
                 .verticalScroll(rememberScrollState()),
-            verticalArrangement = Arrangement.spacedBy(16.dp)
+            verticalArrangement = Arrangement.spacedBy(14.dp)
         ) {
-            // Live Price & Daily Stats Header
+            // 1. Live Price & Daily Stats Header
             Card(
                 modifier = Modifier.fillMaxWidth().testTag("stock_price_header_card"),
                 shape = RoundedCornerShape(16.dp),
-                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
+                colors = CardDefaults.cardColors(containerColor = DarkSurface),
+                border = androidx.compose.foundation.BorderStroke(1.dp, DarkBorder)
             ) {
                 Column(modifier = Modifier.padding(16.dp)) {
                     Row(
@@ -163,8 +183,7 @@ fun StockDetailScreen(
                             val priceStr = if (stock.market == MarketType.US) "$%,.2f".format(stock.currentPrice) else "%,.0f원".format(stock.currentPrice)
                             Text(
                                 text = priceStr,
-                                fontSize = 28.sp,
-                                fontWeight = FontWeight.ExtraBold,
+                                style = TabularPriceHeader,
                                 color = TextPrimary
                             )
 
@@ -175,9 +194,8 @@ fun StockDetailScreen(
                                 val changePriceStr = if (stock.market == MarketType.US) "%+,.2f".format(stock.changePrice) else "%+,.0f".format(stock.changePrice)
                                 Text(
                                     text = "$changePriceStr (%+,.2f%%)".format(stock.changeRate),
-                                    fontSize = 14.sp,
-                                    fontWeight = FontWeight.Bold,
-                                    color = if (stock.isRising) StockRed else if (stock.isFalling) StockBlue else TextSecondary
+                                    style = TabularRateBadge,
+                                    color = if (stock.isRising) NeonGreen else if (stock.isFalling) NeonRed else TextSecondary
                                 )
                             }
                         }
@@ -195,6 +213,7 @@ fun StockDetailScreen(
                                 text = stock.market.name,
                                 fontWeight = FontWeight.Bold,
                                 fontSize = 11.sp,
+                                fontFamily = FontFamily.Monospace,
                                 color = Color.White,
                                 modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
                             )
@@ -202,20 +221,20 @@ fun StockDetailScreen(
                     }
 
                     Spacer(modifier = Modifier.height(12.dp))
-                    HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
+                    HorizontalDivider(color = DarkBorder)
                     Spacer(modifier = Modifier.height(12.dp))
 
-                    // Grid stats (시가/고가/저가/거래량)
+                    // Grid stats (시가/고가/저가/거래량) in Tabular Monospace
                     Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
                         StatColumn(label = "시가", value = "%,.0f".format(stock.openPrice))
-                        StatColumn(label = "고가", value = "%,.0f".format(stock.highPrice), color = StockRed)
-                        StatColumn(label = "저가", value = "%,.0f".format(stock.lowPrice), color = StockBlue)
+                        StatColumn(label = "고가", value = "%,.0f".format(stock.highPrice), color = NeonGreen)
+                        StatColumn(label = "저가", value = "%,.0f".format(stock.lowPrice), color = NeonRed)
                         StatColumn(label = "거래량", value = "%,d".format(stock.volume))
                     }
                 }
             }
 
-            // Interactive Candlestick Chart
+            // 2. Interactive Candlestick Chart
             CandlestickChart(
                 stock = stock,
                 candles = candles,
@@ -223,15 +242,16 @@ fun StockDetailScreen(
                 onTimeframeSelected = { selectedTimeframe = it }
             )
 
-            // Technical Indicator Diagnostic Card
+            // 3. Technical Indicator Diagnostic Card
             Card(
                 modifier = Modifier.fillMaxWidth().testTag("indicator_diagnostic_card"),
                 shape = RoundedCornerShape(14.dp),
-                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
+                colors = CardDefaults.cardColors(containerColor = DarkSurface),
+                border = androidx.compose.foundation.BorderStroke(1.dp, DarkBorder)
             ) {
                 Column(modifier = Modifier.padding(14.dp)) {
                     Text(
-                        text = "기술적 지표 진단 요약",
+                        text = "온디바이스 지표 진단 요약",
                         fontWeight = FontWeight.Bold,
                         fontSize = 14.sp,
                         color = TextPrimary
@@ -244,8 +264,8 @@ fun StockDetailScreen(
                     ) {
                         // RSI Diagnostic
                         val rsiStatus = when {
-                            rsiVal >= 70 -> "과열 (과매수)" to StockRed
-                            rsiVal <= 30 -> "침체 (과매도)" to AccentGold
+                            rsiVal >= 70 -> "과열 (과매수)" to NeonGreen
+                            rsiVal <= 30 -> "침체 (과매도)" to NeonRed
                             else -> "중립 구간" to TextSecondary
                         }
                         IndicatorDiagnosticItem(
@@ -257,9 +277,9 @@ fun StockDetailScreen(
 
                         // MA Trend Diagnostic
                         val trendStatus = if (ma5Val != null && ma20Val != null) {
-                            if (ma5Val > ma20Val) "단기 상승세 (정배열)" to StockRed else "단기 조정세 (역배열)" to StockBlue
+                            if (ma5Val > ma20Val) "상승세 (정배열)" to NeonGreen else "조정세 (역배열)" to NeonRed
                         } else {
-                            "이평선 분석 중" to TextSecondary
+                            "분석 중" to TextSecondary
                         }
                         IndicatorDiagnosticItem(
                             title = "5/20 이평 배열",
@@ -271,11 +291,12 @@ fun StockDetailScreen(
                 }
             }
 
-            // Active Alert Rules for this Stock
+            // 4. Active Alert Rules for this Stock
             Card(
                 modifier = Modifier.fillMaxWidth().testTag("stock_active_rules_card"),
                 shape = RoundedCornerShape(14.dp),
-                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
+                colors = CardDefaults.cardColors(containerColor = DarkSurface),
+                border = androidx.compose.foundation.BorderStroke(1.dp, DarkBorder)
             ) {
                 Column(modifier = Modifier.padding(14.dp)) {
                     Row(
@@ -297,7 +318,7 @@ fun StockDetailScreen(
                             Icon(
                                 imageVector = Icons.Filled.AddAlert,
                                 contentDescription = "추가",
-                                tint = MaterialTheme.colorScheme.primary,
+                                tint = NeonCyan,
                                 modifier = Modifier.size(18.dp)
                             )
                         }
@@ -307,7 +328,7 @@ fun StockDetailScreen(
 
                     if (activeRulesForStock.isEmpty()) {
                         Text(
-                            text = "이 종목에 등록된 알림이 없습니다. 상단 또는 아래 버튼을 눌러 목표가나 이평선 골든크로스 알림을 등록해보세요.",
+                            text = "이 종목에 등록된 감시 알림이 없습니다. 목표가나 이평선 돌파 알림을 등록해보세요.",
                             fontSize = 12.sp,
                             color = TextMuted,
                             modifier = Modifier.padding(vertical = 8.dp)
@@ -318,7 +339,7 @@ fun StockDetailScreen(
                                 Row(
                                     modifier = Modifier
                                         .fillMaxWidth()
-                                        .background(MaterialTheme.colorScheme.surface, RoundedCornerShape(8.dp))
+                                        .background(DarkSurfaceVariant, RoundedCornerShape(8.dp))
                                         .padding(10.dp),
                                     verticalAlignment = Alignment.CenterVertically,
                                     horizontalArrangement = Arrangement.SpaceBetween
@@ -341,6 +362,7 @@ fun StockDetailScreen(
                                         Switch(
                                             checked = rule.isEnabled,
                                             onCheckedChange = { onToggleRule(rule.id, it) },
+                                            colors = SwitchDefaults.colors(checkedThumbColor = NeonCyan, checkedTrackColor = NeonCyan.copy(alpha = 0.4f)),
                                             modifier = Modifier.size(36.dp).testTag("rule_switch_${rule.id}")
                                         )
 
@@ -363,34 +385,59 @@ fun StockDetailScreen(
                 }
             }
 
-            // Quick Actions CTA Section
+            // 5. Quick Actions CTA Section (Quick Trade, Backtest, Alert)
             Row(
                 modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(10.dp)
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
             ) {
+                // Quick Trade Slide Bottom Sheet Trigger
+                Button(
+                    onClick = { showQuickOrderSheet = true },
+                    modifier = Modifier.weight(1.3f).height(48.dp).testTag("cta_quick_trade_btn"),
+                    colors = ButtonDefaults.buttonColors(containerColor = NeonGreen),
+                    shape = RoundedCornerShape(12.dp)
+                ) {
+                    Icon(imageVector = Icons.Filled.Bolt, contentDescription = null, tint = Color.Black, modifier = Modifier.size(18.dp))
+                    Spacer(modifier = Modifier.width(4.dp))
+                    Text("즉시 주문", color = Color.Black, fontWeight = FontWeight.Bold)
+                }
+
                 OutlinedButton(
                     onClick = { onOpenBacktest(stock) },
                     modifier = Modifier.weight(1f).height(48.dp).testTag("cta_backtest_btn"),
                     shape = RoundedCornerShape(12.dp),
-                    border = androidx.compose.foundation.BorderStroke(1.dp, BrandPrimaryLight)
+                    border = androidx.compose.foundation.BorderStroke(1.dp, NeonCyan)
                 ) {
-                    Icon(imageVector = Icons.Filled.AutoGraph, contentDescription = null, tint = BrandPrimaryLight, modifier = Modifier.size(18.dp))
-                    Spacer(modifier = Modifier.width(6.dp))
-                    Text("백테스트", color = BrandPrimaryLight, fontWeight = FontWeight.Bold)
+                    Icon(imageVector = Icons.Filled.AutoGraph, contentDescription = null, tint = NeonCyan, modifier = Modifier.size(16.dp))
+                    Spacer(modifier = Modifier.width(4.dp))
+                    Text("백테스트", color = NeonCyan, fontWeight = FontWeight.Bold, fontSize = 12.sp)
                 }
 
                 Button(
                     onClick = onAddAlert,
-                    modifier = Modifier.weight(1.4f).height(48.dp).testTag("cta_add_alert_btn"),
+                    modifier = Modifier.weight(1.2f).height(48.dp).testTag("cta_add_alert_btn"),
+                    colors = ButtonDefaults.buttonColors(containerColor = DarkSurfaceVariant),
+                    border = androidx.compose.foundation.BorderStroke(1.dp, DarkBorder),
                     shape = RoundedCornerShape(12.dp)
                 ) {
-                    Icon(imageVector = Icons.Filled.NotificationsActive, contentDescription = null, modifier = Modifier.size(18.dp))
-                    Spacer(modifier = Modifier.width(6.dp))
-                    Text("알림 만들기", fontWeight = FontWeight.Bold)
+                    Icon(imageVector = Icons.Filled.NotificationsActive, contentDescription = null, tint = TextPrimary, modifier = Modifier.size(16.dp))
+                    Spacer(modifier = Modifier.width(4.dp))
+                    Text("알림 등록", color = TextPrimary, fontWeight = FontWeight.Bold, fontSize = 12.sp)
                 }
             }
 
             Spacer(modifier = Modifier.height(16.dp))
+        }
+
+        // Quick Order Bottom Sheet
+        if (showQuickOrderSheet) {
+            QuickOrderBottomSheet(
+                stock = stock,
+                onDismiss = { showQuickOrderSheet = false },
+                onExecuteOrder = { targetStock, side, price, qty ->
+                    showQuickOrderSheet = false
+                }
+            )
         }
     }
 }
@@ -399,7 +446,7 @@ fun StockDetailScreen(
 private fun StatColumn(label: String, value: String, color: Color = TextPrimary) {
     Column {
         Text(text = label, fontSize = 11.sp, color = TextSecondary)
-        Text(text = value, fontSize = 13.sp, fontWeight = FontWeight.Bold, color = color)
+        Text(text = value, fontSize = 13.sp, fontFamily = FontFamily.Monospace, fontWeight = FontWeight.Bold, color = color)
     }
 }
 
@@ -412,7 +459,8 @@ private fun IndicatorDiagnosticItem(
 ) {
     Column {
         Text(text = title, fontSize = 11.sp, color = TextSecondary)
-        Text(text = value, fontSize = 13.sp, fontWeight = FontWeight.Bold, color = TextPrimary)
+        Text(text = value, fontSize = 13.sp, fontFamily = FontFamily.Monospace, fontWeight = FontWeight.Bold, color = TextPrimary)
         Text(text = status, fontSize = 11.sp, fontWeight = FontWeight.SemiBold, color = statusColor)
     }
 }
+
