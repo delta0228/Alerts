@@ -314,9 +314,10 @@ fun RuleBuilderScreen(
 
             // Step 2: Timeframe (감시 주기)
             SectionCard(title = "2. 감시 주기 (Monitoring Timeframe)") {
-                Row(
+                FlowRow(
                     modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    horizontalArrangement = Arrangement.spacedBy(6.dp),
+                    verticalArrangement = Arrangement.spacedBy(6.dp)
                 ) {
                     ChartTimeframe.values().forEach { tf ->
                         val isSelected = selectedTimeframe == tf
@@ -325,9 +326,9 @@ fun RuleBuilderScreen(
                             shape = RoundedCornerShape(8.dp),
                             color = if (isSelected) NeonCyan else DarkOledBackground,
                             border = androidx.compose.foundation.BorderStroke(1.dp, if (isSelected) NeonCyan else DarkBorder),
-                            modifier = Modifier.weight(1f).testTag("timeframe_btn_${tf.name}")
+                            modifier = Modifier.testTag("timeframe_btn_${tf.name}")
                         ) {
-                            Box(contentAlignment = Alignment.Center, modifier = Modifier.padding(vertical = 8.dp)) {
+                            Box(contentAlignment = Alignment.Center, modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp)) {
                                 Text(
                                     text = tf.label,
                                     fontSize = 12.sp,
@@ -544,8 +545,32 @@ fun RuleBuilderScreen(
                             )
                         }
                     }
+                    RuleType.ELLIOTT_WAVE_3_IMPULSE, RuleType.ELLIOTT_WAVE_4_PULLBACK, RuleType.ELLIOTT_WAVE_5_TOP -> {
+                        Surface(
+                            shape = RoundedCornerShape(8.dp),
+                            color = DarkOledBackground,
+                            border = androidx.compose.foundation.BorderStroke(1.dp, NeonCyan.copy(alpha = 0.5f)),
+                            modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp)
+                        ) {
+                            Column(modifier = Modifier.padding(10.dp)) {
+                                Text(
+                                    text = "🌊 온디바이스 엘리엇 파동 자동 분석 알고리즘",
+                                    fontSize = 12.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    color = NeonCyan
+                                )
+                                Spacer(modifier = Modifier.height(4.dp))
+                                Text(
+                                    text = "Zigzag 극점 탐색과 피보나치 확장비(1.618x) 및 되돌림(38.2%/61.8%) 공식을 실시간으로 적용하여 파동 국면 진입 시 즉시 알림을 발송합니다.",
+                                    fontSize = 11.sp,
+                                    color = TextSecondary,
+                                    lineHeight = 15.sp
+                                )
+                            }
+                        }
+                    }
                     else -> {
-                        Text("선택한 조건은 온디바이스에서 볼린저밴드 공식으로 자동 산출됩니다.", fontSize = 12.sp, color = TextSecondary)
+                        Text("선택한 조건은 온디바이스에서 보조지표 공식으로 자동 산출됩니다.", fontSize = 12.sp, color = TextSecondary)
                     }
                 }
             }

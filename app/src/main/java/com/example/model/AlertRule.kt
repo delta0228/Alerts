@@ -3,6 +3,7 @@ package com.example.model
 enum class RuleCategory(val title: String, val description: String) {
     PRICE("가격 조건", "특정 가격 돌파 및 목표가 도달"),
     CHANGE_RATE("등락률 조건", "전일 또는 시가 대비 급등락"),
+    ELLIOTT_WAVE("엘리엇 파동", "상승 3파 급등 및 4파 눌림/5파 고점 감지"),
     MOVING_AVERAGE("이동평균선 (이평선)", "골든크로스 / 데드크로스 및 배열"),
     RSI("RSI (상대강도지수)", "과매수(Overbought) 및 과매도(Oversold)"),
     BOLLINGER("볼린저 밴드", "상/하단 밴드 터치 및 돌파"),
@@ -18,6 +19,9 @@ enum class RuleType(
     PRICE_BELOW(RuleCategory.PRICE, "목표가 하향 이탈", "현재가가 {value}원 이하로 하향 이탈 시"),
     CHANGE_RATE_SURGE(RuleCategory.CHANGE_RATE, "전일 대비 급등", "전일 대비 +{value}% 이상 상승 시"),
     CHANGE_RATE_PLUNGE(RuleCategory.CHANGE_RATE, "전일 대비 급락", "전일 대비 -{value}% 이하 하락 시"),
+    ELLIOTT_WAVE_3_IMPULSE(RuleCategory.ELLIOTT_WAVE, "엘리엇 3파 급등 국면 포착", "주가가 강력한 상승 제 3파에 진입 시"),
+    ELLIOTT_WAVE_4_PULLBACK(RuleCategory.ELLIOTT_WAVE, "엘리엇 4파 눌림목 지지", "1파 고점 상단 4파 눌림목 지지선 도달 시"),
+    ELLIOTT_WAVE_5_TOP(RuleCategory.ELLIOTT_WAVE, "엘리엇 5파 최고점 과열 경고", "상승 5파 목표치 도달 및 피크 형성 시"),
     MA_GOLDEN_CROSS(RuleCategory.MOVING_AVERAGE, "골든크로스 (단기>장기)", "{param1}일선이 {param2}일선을 상향 돌파 시"),
     MA_DEAD_CROSS(RuleCategory.MOVING_AVERAGE, "데드크로스 (단기<장기)", "{param1}일선이 {param2}일선을 하향 이탈 시"),
     RSI_OVERSOLD(RuleCategory.RSI, "RSI 과매도 구간 진입", "RSI(14)가 {value} 이하로 과매도 진입 시"),
@@ -63,6 +67,9 @@ data class AlertRule(
             RuleType.PRICE_BELOW -> "현재가 ≤ %,.0f원".format(thresholdValue)
             RuleType.CHANGE_RATE_SURGE -> "전일 대비 ≥ +%.1f%%".format(thresholdValue)
             RuleType.CHANGE_RATE_PLUNGE -> "전일 대비 ≤ -%.1f%%".format(thresholdValue)
+            RuleType.ELLIOTT_WAVE_3_IMPULSE -> "엘리엇 3파 주도 상승 파동 진입"
+            RuleType.ELLIOTT_WAVE_4_PULLBACK -> "엘리엇 4파 눌림목 지지선 도달"
+            RuleType.ELLIOTT_WAVE_5_TOP -> "엘리엇 5파 최고점 과열 경고"
             RuleType.MA_GOLDEN_CROSS -> "이평선 ${param1}일선 > ${param2}일선 골든크로스"
             RuleType.MA_DEAD_CROSS -> "이평선 ${param1}일선 < ${param2}일선 데드크로스"
             RuleType.RSI_OVERSOLD -> "RSI(14) ≤ %.0f (과매도)".format(thresholdValue)

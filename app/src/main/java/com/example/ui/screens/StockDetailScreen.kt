@@ -45,6 +45,7 @@ import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
@@ -101,10 +102,11 @@ fun StockDetailScreen(
     modifier: Modifier = Modifier
 ) {
     var selectedTimeframe by remember { mutableStateOf(ChartTimeframe.M5) }
+    var customDays by remember { mutableIntStateOf(3) }
     var showQuickOrderSheet by remember { mutableStateOf(false) }
 
-    val candles = remember(stock, selectedTimeframe) {
-        dataManager.getCandles(stock.symbol, selectedTimeframe)
+    val candles = remember(stock, selectedTimeframe, customDays) {
+        dataManager.getCandles(stock.symbol, selectedTimeframe, customDays)
     }
 
     val latestCandle = candles.lastOrNull()
@@ -239,7 +241,9 @@ fun StockDetailScreen(
                 stock = stock,
                 candles = candles,
                 selectedTimeframe = selectedTimeframe,
-                onTimeframeSelected = { selectedTimeframe = it }
+                onTimeframeSelected = { selectedTimeframe = it },
+                customDays = customDays,
+                onCustomDaysChanged = { customDays = it }
             )
 
             // 3. Technical Indicator Diagnostic Card

@@ -4,8 +4,11 @@ import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.detectDragGestures
 import androidx.compose.foundation.gestures.detectTapGestures
+import androidx.compose.foundation.horizontalScroll
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -19,26 +22,43 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.ui.draw.clip
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.AutoGraph
+import androidx.compose.material.icons.filled.CalendarMonth
+import androidx.compose.material.icons.filled.Info
+import androidx.compose.material.icons.filled.KeyboardArrowDown
+import androidx.compose.material.icons.filled.KeyboardArrowUp
+import androidx.compose.material.icons.filled.Remove
 import androidx.compose.material.icons.filled.ShowChart
 import androidx.compose.material.icons.filled.Timeline
+import androidx.compose.material.icons.filled.TrendingUp
+import androidx.compose.material.icons.filled.Tune
+import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.FilterChip
-import androidx.compose.material3.FilterChipDefaults
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
+import androidx.compose.material3.Slider
+import androidx.compose.material3.SliderDefaults
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
@@ -49,12 +69,21 @@ import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.nativeCanvas
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.example.engine.ElliottWaveEngine
 import com.example.model.CalculatedCandle
 import com.example.model.ChartTimeframe
+import com.example.model.ElliottWaveResult
 import com.example.model.Stock
+import com.example.model.WavePhase
+import com.example.model.WavePoint
+import com.example.ui.theme.DarkBorder
+import com.example.ui.theme.DarkOledBackground
+import com.example.ui.theme.DarkSurface
+import com.example.ui.theme.DarkSurfaceVariant
 import com.example.ui.theme.IndicatorBollinger
 import com.example.ui.theme.IndicatorMA120
 import com.example.ui.theme.IndicatorMA20
@@ -63,8 +92,15 @@ import com.example.ui.theme.IndicatorMA60
 import com.example.ui.theme.IndicatorMACD
 import com.example.ui.theme.IndicatorRSI
 import com.example.ui.theme.IndicatorSignal
+import com.example.ui.theme.NeonAmber
+import com.example.ui.theme.NeonCyan
+import com.example.ui.theme.NeonGreen
+import com.example.ui.theme.NeonPurple
+import com.example.ui.theme.NeonRed
 import com.example.ui.theme.StockBlue
 import com.example.ui.theme.StockRed
+import com.example.ui.theme.TabularRateBadge
+import com.example.ui.theme.TextDim
 import com.example.ui.theme.TextMuted
 import com.example.ui.theme.TextPrimary
 import com.example.ui.theme.TextSecondary
@@ -87,21 +123,41 @@ fun CandlestickChart(
     candles: List<CalculatedCandle>,
     selectedTimeframe: ChartTimeframe,
     onTimeframeSelected: (ChartTimeframe) -> Unit,
+    customDays: Int = 3,
+    onCustomDaysChanged: (Int) -> Unit = {},
     modifier: Modifier = Modifier
 ) {
-    var showMA by remember { mutableStateOf(false) } // Hidden by default for minimal 3-second glanceable chart
+    var showMA by remember { mutableStateOf(false) }
     var showBollinger by remember { mutableStateOf(false) }
+    var showElliottWave by remember { mutableStateOf(true) } // Elliott wave enabled by default
     var selectedSubIndicator by remember { mutableStateOf(SubIndicatorType.VOLUME) }
     var scrubIndex by remember { mutableStateOf<Int?>(null) }
+    var isElliottDetailsExpanded by remember { mutableStateOf(false) }
+    var showCustomDaysDialog by remember { mutableStateOf(false) }
 
     val visibleCandles = remember(candles) { candles.takeLast(50) }
+    val elliottWaveResult = remember(visibleCandles) {
+        ElliottWaveEngine.analyzeElliottWaves(visibleCandles)
+    }
+
+    if (showCustomDaysDialog) {
+        CustomDaysIntervalDialog(
+            currentDays = customDays,
+            onDismiss = { showCustomDaysDialog = false },
+            onApply = { newDays ->
+                onCustomDaysChanged(newDays)
+                onTimeframeSelected(ChartTimeframe.CUSTOM_DAYS)
+                showCustomDaysDialog = false
+            }
+        )
+    }
 
     Column(
         modifier = modifier
             .fillMaxWidth()
             .clip(RoundedCornerShape(16.dp))
-            .background(com.example.ui.theme.DarkSurface)
-            .border(1.dp, com.example.ui.theme.DarkBorder, RoundedCornerShape(16.dp))
+            .background(DarkSurface)
+            .border(1.dp, DarkBorder, RoundedCornerShape(16.dp))
             .padding(12.dp)
             .testTag("candlestick_chart_container")
     ) {
@@ -112,44 +168,79 @@ fun CandlestickChart(
             verticalAlignment = Alignment.CenterVertically
         ) {
             // Timeframe Pills
-            Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+            Row(
+                modifier = Modifier
+                    .weight(1f, fill = false)
+                    .horizontalScroll(rememberScrollState()),
+                horizontalArrangement = Arrangement.spacedBy(4.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
                 ChartTimeframe.values().forEach { tf ->
                     val isSelected = tf == selectedTimeframe
+                    val isCustom = tf == ChartTimeframe.CUSTOM_DAYS
+                    val label = if (isCustom) "${customDays}일" else tf.label
+
                     Surface(
-                        onClick = { onTimeframeSelected(tf) },
+                        onClick = {
+                            if (isCustom) {
+                                if (isSelected) {
+                                    showCustomDaysDialog = true
+                                } else {
+                                    onTimeframeSelected(tf)
+                                }
+                            } else {
+                                onTimeframeSelected(tf)
+                            }
+                        },
                         shape = RoundedCornerShape(8.dp),
-                        color = if (isSelected) com.example.ui.theme.NeonCyan else com.example.ui.theme.DarkSurfaceVariant,
+                        color = if (isSelected) NeonCyan else DarkSurfaceVariant,
+                        border = if (isCustom && !isSelected) androidx.compose.foundation.BorderStroke(1.dp, NeonCyan.copy(alpha = 0.5f)) else null,
                         modifier = Modifier.testTag("tf_button_${tf.name}")
                     ) {
-                        Text(
-                            text = tf.label,
-                            color = if (isSelected) Color.Black else com.example.ui.theme.TextSecondary,
-                            fontSize = 11.sp,
-                            fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
-                            modifier = Modifier.padding(horizontal = 7.dp, vertical = 4.dp)
-                        )
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            modifier = Modifier.padding(horizontal = if (isCustom) 6.dp else 7.dp, vertical = 4.dp)
+                        ) {
+                            if (isCustom) {
+                                Icon(
+                                    imageVector = Icons.Filled.Tune,
+                                    contentDescription = "설정",
+                                    tint = if (isSelected) Color.Black else NeonCyan,
+                                    modifier = Modifier.size(11.dp)
+                                )
+                                Spacer(modifier = Modifier.width(3.dp))
+                            }
+                            Text(
+                                text = label,
+                                color = if (isSelected) Color.Black else if (isCustom) NeonCyan else TextSecondary,
+                                fontSize = 11.sp,
+                                fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium
+                            )
+                        }
                     }
                 }
             }
 
+            Spacer(modifier = Modifier.width(6.dp))
+
             // Sub Indicator Floating Pills (VOL, RSI, MACD)
-            Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+            Row(horizontalArrangement = Arrangement.spacedBy(3.dp)) {
                 SubIndicatorType.values().forEach { sub ->
                     val isSelected = sub == selectedSubIndicator
                     Surface(
                         onClick = { selectedSubIndicator = sub },
                         shape = RoundedCornerShape(8.dp),
-                        color = if (isSelected) com.example.ui.theme.NeonCyan.copy(alpha = 0.2f) else Color.Transparent,
-                        border = if (isSelected) androidx.compose.foundation.BorderStroke(1.dp, com.example.ui.theme.NeonCyan) else null,
+                        color = if (isSelected) NeonCyan.copy(alpha = 0.2f) else Color.Transparent,
+                        border = if (isSelected) androidx.compose.foundation.BorderStroke(1.dp, NeonCyan) else null,
                         modifier = Modifier.testTag("sub_indicator_${sub.name}")
                     ) {
                         Text(
                             text = sub.label,
-                            color = if (isSelected) com.example.ui.theme.NeonCyan else TextMuted,
-                            fontSize = 11.sp,
-                            fontFamily = androidx.compose.ui.text.font.FontFamily.Monospace,
+                            color = if (isSelected) NeonCyan else TextMuted,
+                            fontSize = 10.sp,
+                            fontFamily = FontFamily.Monospace,
                             fontWeight = FontWeight.Bold,
-                            modifier = Modifier.padding(horizontal = 6.dp, vertical = 4.dp)
+                            modifier = Modifier.padding(horizontal = 5.dp, vertical = 4.dp)
                         )
                     }
                 }
@@ -158,51 +249,79 @@ fun CandlestickChart(
 
         Spacer(modifier = Modifier.height(8.dp))
 
-        // Floating Pill Buttons for Technical Overlay Indicators (MA, Bollinger)
+        // Floating Pill Buttons for Technical Overlay Indicators (Elliott Wave, MA, Bollinger)
         Row(
-            modifier = Modifier.fillMaxWidth(),
+            modifier = Modifier
+                .fillMaxWidth()
+                .horizontalScroll(rememberScrollState()),
             horizontalArrangement = Arrangement.spacedBy(8.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
+            // Elliott Wave Toggle Pill
+            Surface(
+                onClick = { showElliottWave = !showElliottWave },
+                shape = RoundedCornerShape(20.dp),
+                color = if (showElliottWave) NeonCyan.copy(alpha = 0.22f) else DarkSurfaceVariant,
+                border = androidx.compose.foundation.BorderStroke(1.dp, if (showElliottWave) NeonCyan else DarkBorder),
+                modifier = Modifier.testTag("toggle_elliott_pill")
+            ) {
+                Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(horizontal = 9.dp, vertical = 4.dp)) {
+                    Box(modifier = Modifier.size(7.dp).clip(CircleShape).background(if (showElliottWave) NeonCyan else TextMuted))
+                    Spacer(modifier = Modifier.width(5.dp))
+                    Text(
+                        text = "🌊 엘리엇 파동 (1-5/ABC)",
+                        fontSize = 11.sp,
+                        color = if (showElliottWave) NeonCyan else TextSecondary,
+                        fontWeight = FontWeight.Bold
+                    )
+                }
+            }
+
             Surface(
                 onClick = { showMA = !showMA },
                 shape = RoundedCornerShape(20.dp),
-                color = if (showMA) com.example.ui.theme.IndicatorMA5.copy(alpha = 0.2f) else com.example.ui.theme.DarkSurfaceVariant,
-                border = androidx.compose.foundation.BorderStroke(1.dp, if (showMA) com.example.ui.theme.IndicatorMA5 else com.example.ui.theme.DarkBorder),
+                color = if (showMA) IndicatorMA5.copy(alpha = 0.2f) else DarkSurfaceVariant,
+                border = androidx.compose.foundation.BorderStroke(1.dp, if (showMA) IndicatorMA5 else DarkBorder),
                 modifier = Modifier.testTag("toggle_ma_pill")
             ) {
                 Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)) {
-                    Box(modifier = Modifier.size(6.dp).clip(androidx.compose.foundation.shape.CircleShape).background(if (showMA) com.example.ui.theme.IndicatorMA5 else TextMuted))
+                    Box(modifier = Modifier.size(6.dp).clip(CircleShape).background(if (showMA) IndicatorMA5 else TextMuted))
                     Spacer(modifier = Modifier.width(4.dp))
-                    Text("MA (5/20/60)", fontSize = 11.sp, color = if (showMA) com.example.ui.theme.IndicatorMA5 else TextMuted, fontWeight = FontWeight.Bold)
+                    Text("MA (5/20/60)", fontSize = 11.sp, color = if (showMA) IndicatorMA5 else TextMuted, fontWeight = FontWeight.Bold)
                 }
             }
 
             Surface(
                 onClick = { showBollinger = !showBollinger },
                 shape = RoundedCornerShape(20.dp),
-                color = if (showBollinger) com.example.ui.theme.IndicatorBollinger.copy(alpha = 0.2f) else com.example.ui.theme.DarkSurfaceVariant,
-                border = androidx.compose.foundation.BorderStroke(1.dp, if (showBollinger) com.example.ui.theme.IndicatorBollinger else com.example.ui.theme.DarkBorder),
+                color = if (showBollinger) IndicatorBollinger.copy(alpha = 0.2f) else DarkSurfaceVariant,
+                border = androidx.compose.foundation.BorderStroke(1.dp, if (showBollinger) IndicatorBollinger else DarkBorder),
                 modifier = Modifier.testTag("toggle_bb_pill")
             ) {
                 Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)) {
-                    Box(modifier = Modifier.size(6.dp).clip(androidx.compose.foundation.shape.CircleShape).background(if (showBollinger) com.example.ui.theme.IndicatorBollinger else TextMuted))
+                    Box(modifier = Modifier.size(6.dp).clip(CircleShape).background(if (showBollinger) IndicatorBollinger else TextMuted))
                     Spacer(modifier = Modifier.width(4.dp))
-                    Text("볼린저밴드 (20,2)", fontSize = 11.sp, color = if (showBollinger) com.example.ui.theme.IndicatorBollinger else TextMuted, fontWeight = FontWeight.Bold)
+                    Text("볼린저밴드", fontSize = 11.sp, color = if (showBollinger) IndicatorBollinger else TextMuted, fontWeight = FontWeight.Bold)
                 }
             }
         }
-
 
         Spacer(modifier = Modifier.height(6.dp))
 
         // Scrub Info Tooltip Badge
         if (scrubIndex != null && scrubIndex!! in visibleCandles.indices) {
             val scrubbed = visibleCandles[scrubIndex!!]
-            val dateStr = SimpleDateFormat("MM/dd HH:mm", Locale.KOREA).format(Date(scrubbed.candle.timestamp))
+            val datePattern = when (selectedTimeframe) {
+                ChartTimeframe.MONTHLY -> "yyyy.MM"
+                ChartTimeframe.WEEKLY, ChartTimeframe.DAILY, ChartTimeframe.D2, ChartTimeframe.D3, ChartTimeframe.D5, ChartTimeframe.D10 -> "yy.MM.dd"
+                ChartTimeframe.CUSTOM_DAYS -> "yy.MM.dd (${customDays}일)"
+                else -> "MM.dd HH:mm"
+            }
+            val dateStr = SimpleDateFormat(datePattern, Locale.KOREA).format(Date(scrubbed.candle.timestamp))
             Card(
-                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
+                colors = CardDefaults.cardColors(containerColor = DarkSurfaceVariant),
                 shape = RoundedCornerShape(8.dp),
+                border = androidx.compose.foundation.BorderStroke(1.dp, DarkBorder),
                 modifier = Modifier.fillMaxWidth().padding(bottom = 6.dp)
             ) {
                 Row(
@@ -220,7 +339,7 @@ fun CandlestickChart(
             }
         }
 
-        // Main Chart Canvas (Candlestick + Overlays) & Sub-chart Canvas
+        // Main Chart Canvas (Candlestick + Overlays + Elliott Waves) & Sub-chart Canvas
         Box(
             modifier = Modifier
                 .fillMaxWidth()
@@ -264,6 +383,8 @@ fun CandlestickChart(
                     height = mainHeight,
                     showMA = showMA,
                     showBollinger = showBollinger,
+                    showElliottWave = showElliottWave,
+                    elliottResult = elliottWaveResult,
                     scrubIndex = scrubIndex
                 )
 
@@ -299,6 +420,192 @@ fun CandlestickChart(
                 }
             }
         }
+
+        // Elliott Wave Live Analysis & Fibonacci Strategy Diagnostic Card
+        if (showElliottWave && elliottWaveResult.points.isNotEmpty()) {
+            Spacer(modifier = Modifier.height(10.dp))
+            ElliottWaveAnalysisCard(
+                result = elliottWaveResult,
+                currentPrice = stock.currentPrice,
+                isExpanded = isElliottDetailsExpanded,
+                onToggleExpand = { isElliottDetailsExpanded = !isElliottDetailsExpanded }
+            )
+        }
+    }
+}
+
+@Composable
+private fun ElliottWaveAnalysisCard(
+    result: ElliottWaveResult,
+    currentPrice: Double,
+    isExpanded: Boolean,
+    onToggleExpand: () -> Unit
+) {
+    Card(
+        shape = RoundedCornerShape(12.dp),
+        colors = CardDefaults.cardColors(containerColor = DarkSurfaceVariant),
+        border = androidx.compose.foundation.BorderStroke(1.dp, NeonCyan.copy(alpha = 0.5f)),
+        modifier = Modifier.fillMaxWidth().testTag("elliott_analysis_card")
+    ) {
+        Column(modifier = Modifier.padding(12.dp)) {
+            // Header Row: Phase Badge & Confidence
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Surface(
+                        shape = RoundedCornerShape(6.dp),
+                        color = when (result.currentPhase) {
+                            WavePhase.WAVE_3_IMPULSE -> NeonGreen.copy(alpha = 0.2f)
+                            WavePhase.WAVE_1_START, WavePhase.WAVE_2_PULLBACK, WavePhase.WAVE_4_CONSOLIDATION -> NeonCyan.copy(alpha = 0.2f)
+                            WavePhase.WAVE_5_CLIMAX -> NeonAmber.copy(alpha = 0.25f)
+                            else -> NeonRed.copy(alpha = 0.2f)
+                        },
+                        border = androidx.compose.foundation.BorderStroke(
+                            1.dp,
+                            when (result.currentPhase) {
+                                WavePhase.WAVE_3_IMPULSE -> NeonGreen
+                                WavePhase.WAVE_5_CLIMAX -> NeonAmber
+                                WavePhase.WAVE_A_CORRECTION, WavePhase.WAVE_C_COMPLETION -> NeonRed
+                                else -> NeonCyan
+                            }
+                        )
+                    ) {
+                        Text(
+                            text = result.currentPhase.title,
+                            fontWeight = FontWeight.Bold,
+                            fontSize = 12.sp,
+                            color = when (result.currentPhase) {
+                                WavePhase.WAVE_3_IMPULSE -> NeonGreen
+                                WavePhase.WAVE_5_CLIMAX -> NeonAmber
+                                WavePhase.WAVE_A_CORRECTION, WavePhase.WAVE_C_COMPLETION -> NeonRed
+                                else -> NeonCyan
+                            },
+                            modifier = Modifier.padding(horizontal = 8.dp, vertical = 3.dp)
+                        )
+                    }
+
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text(
+                        text = "파동 신뢰도 ${result.confidenceScore}%",
+                        fontSize = 11.sp,
+                        fontFamily = FontFamily.Monospace,
+                        color = TextSecondary
+                    )
+                }
+
+                IconButton(onClick = onToggleExpand, modifier = Modifier.size(24.dp)) {
+                    Icon(
+                        imageVector = if (isExpanded) Icons.Filled.KeyboardArrowUp else Icons.Filled.KeyboardArrowDown,
+                        contentDescription = "파동 상세",
+                        tint = NeonCyan
+                    )
+                }
+            }
+
+            Spacer(modifier = Modifier.height(6.dp))
+
+            // Summary description
+            Text(
+                text = result.summary,
+                fontSize = 12.sp,
+                color = TextPrimary,
+                fontWeight = FontWeight.Medium
+            )
+
+            Spacer(modifier = Modifier.height(4.dp))
+
+            // Strategy Tip
+            Row(verticalAlignment = Alignment.Top) {
+                Icon(
+                    imageVector = Icons.Filled.TrendingUp,
+                    contentDescription = null,
+                    tint = NeonAmber,
+                    modifier = Modifier.size(14.dp).padding(top = 2.dp)
+                )
+                Spacer(modifier = Modifier.width(4.dp))
+                Text(
+                    text = "전략 가이드: ${result.strategyTip}",
+                    fontSize = 11.sp,
+                    color = NeonAmber,
+                    lineHeight = 15.sp
+                )
+            }
+
+            Spacer(modifier = Modifier.height(8.dp))
+
+            // Target, Support & Resistance Key Levels
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween
+            ) {
+                LevelBadge(label = "예상 목표가", price = result.targetPrice, color = NeonGreen)
+                LevelBadge(label = "핵심 지지선", price = result.supportPrice, color = NeonCyan)
+                LevelBadge(label = "상단 저항선", price = result.resistancePrice, color = NeonRed)
+            }
+
+            // Expandable Wave Breakdown Table
+            AnimatedVisibility(visible = isExpanded) {
+                Column(modifier = Modifier.padding(top = 10.dp)) {
+                    HorizontalDivider(color = DarkBorder)
+                    Spacer(modifier = Modifier.height(8.dp))
+                    Text(
+                        text = "각 파동별 분석 및 피보나치 비율",
+                        fontSize = 11.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = TextSecondary
+                    )
+                    Spacer(modifier = Modifier.height(6.dp))
+
+                    result.waveDetails.forEach { detail ->
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(vertical = 3.dp),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Text(
+                                text = detail.waveName,
+                                fontSize = 11.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = NeonCyan,
+                                modifier = Modifier.width(68.dp)
+                            )
+                            Text(
+                                text = "%,.0f원 → %,.0f원".format(detail.startPrice, detail.endPrice),
+                                fontSize = 10.sp,
+                                fontFamily = FontFamily.Monospace,
+                                color = TextPrimary
+                            )
+                            Text(
+                                text = detail.fibRatioText,
+                                fontSize = 10.sp,
+                                fontFamily = FontFamily.Monospace,
+                                fontWeight = FontWeight.Bold,
+                                color = if (detail.changePercent >= 0) NeonGreen else NeonRed
+                            )
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun LevelBadge(label: String, price: Double, color: Color) {
+    Column {
+        Text(text = label, fontSize = 10.sp, color = TextSecondary)
+        Text(
+            text = "%,.0f원".format(price),
+            fontSize = 12.sp,
+            fontFamily = FontFamily.Monospace,
+            fontWeight = FontWeight.Bold,
+            color = color
+        )
     }
 }
 
@@ -308,6 +615,8 @@ private fun DrawScope.drawMainCandlestickChart(
     height: Float,
     showMA: Boolean,
     showBollinger: Boolean,
+    showElliottWave: Boolean,
+    elliottResult: ElliottWaveResult,
     scrubIndex: Int?
 ) {
     var minPrice = candles.minOf { it.candle.low }
@@ -320,12 +629,23 @@ private fun DrawScope.drawMainCandlestickChart(
         }
     }
 
+    if (showElliottWave && elliottResult.points.isNotEmpty()) {
+        elliottResult.points.forEach { p ->
+            minPrice = min(minPrice, p.price * 0.98)
+            maxPrice = max(maxPrice, p.price * 1.02)
+        }
+        elliottResult.projectedNextPoint?.let { p ->
+            minPrice = min(minPrice, p.price * 0.98)
+            maxPrice = max(maxPrice, p.price * 1.02)
+        }
+    }
+
     val priceRange = if (maxPrice - minPrice > 0) maxPrice - minPrice else 1.0
     val candleWidth = width / candles.size
     val bodyWidth = candleWidth * 0.68f
 
     fun priceToY(price: Double): Float {
-        return (height - ((price - minPrice) / priceRange * (height - 20f)) - 10f).toFloat()
+        return (height - ((price - minPrice) / priceRange * (height - 30f)) - 15f).toFloat()
     }
 
     // Grid lines & price labels
@@ -423,6 +743,16 @@ private fun DrawScope.drawMainCandlestickChart(
         drawIndicatorLine(candles, candleWidth, { it.indicators.ma60 }, IndicatorMA60, 2.0f) { priceToY(it) }
     }
 
+    // Draw Automatic Elliott Wave Overlay
+    if (showElliottWave && elliottResult.points.isNotEmpty()) {
+        drawElliottWaveOverlay(
+            result = elliottResult,
+            candleWidth = candleWidth,
+            height = height,
+            priceToY = { priceToY(it) }
+        )
+    }
+
     // Crosshair scrub
     if (scrubIndex != null && scrubIndex in candles.indices) {
         val scrubX = scrubIndex * candleWidth + candleWidth / 2f
@@ -448,6 +778,186 @@ private fun DrawScope.drawMainCandlestickChart(
             radius = 4f,
             center = Offset(scrubX, closeY)
         )
+    }
+}
+
+private fun DrawScope.drawElliottWaveOverlay(
+    result: ElliottWaveResult,
+    candleWidth: Float,
+    height: Float,
+    priceToY: (Double) -> Float
+) {
+    val points = result.points
+    if (points.isEmpty()) return
+
+    val pathImpulse = Path()
+    val pathCorrection = Path()
+    var impulseStarted = false
+    var correctionStarted = false
+
+    val nodeOffsets = mutableListOf<Triple<Offset, WavePoint, Color>>()
+
+    points.forEachIndexed { i, p ->
+        val x = p.index * candleWidth + candleWidth / 2f
+        val y = priceToY(p.price)
+        val offset = Offset(x, y)
+
+        val isCorrection = p.label in listOf("A", "B", "C")
+        val nodeColor = when (p.label) {
+            "1", "3", "5" -> NeonGreen
+            "2", "4" -> NeonCyan
+            "A", "C" -> NeonRed
+            "B" -> NeonAmber
+            else -> NeonPurple
+        }
+        nodeOffsets.add(Triple(offset, p, nodeColor))
+
+        if (!isCorrection && i <= 5) {
+            // Impulse Waves (0 to 5)
+            if (!impulseStarted) {
+                pathImpulse.moveTo(x, y)
+                impulseStarted = true
+            } else {
+                pathImpulse.lineTo(x, y)
+            }
+        } else {
+            // Correction Waves (5 to C)
+            if (!correctionStarted) {
+                // Connect from Wave 5
+                val lastImpulse = nodeOffsets.getOrNull(5)?.first ?: offset
+                pathCorrection.moveTo(lastImpulse.x, lastImpulse.y)
+                pathCorrection.lineTo(x, y)
+                correctionStarted = true
+            } else {
+                pathCorrection.lineTo(x, y)
+            }
+        }
+    }
+
+    // 1. Draw Glowing Outer Polyline for Impulse Waves
+    if (impulseStarted) {
+        // Outer glow
+        drawPath(
+            path = pathImpulse,
+            color = NeonCyan.copy(alpha = 0.25f),
+            style = Stroke(width = 6f)
+        )
+        // Core line
+        drawPath(
+            path = pathImpulse,
+            color = NeonCyan,
+            style = Stroke(width = 2.5f)
+        )
+    }
+
+    // 2. Draw Polyline for Correction Waves (A-B-C)
+    if (correctionStarted) {
+        drawPath(
+            path = pathCorrection,
+            color = NeonAmber.copy(alpha = 0.25f),
+            style = Stroke(width = 6f)
+        )
+        drawPath(
+            path = pathCorrection,
+            color = NeonAmber,
+            style = Stroke(width = 2.5f)
+        )
+    }
+
+    // 3. Draw Future Projected Target Line (Dashed)
+    result.projectedNextPoint?.let { nextP ->
+        val lastNode = nodeOffsets.lastOrNull()?.first
+        if (lastNode != null) {
+            val nextX = nextP.index * candleWidth + candleWidth / 2f
+            val nextY = priceToY(nextP.price)
+            val nextOffset = Offset(nextX, nextY)
+
+            val dashEffect = PathEffect.dashPathEffect(floatArrayOf(6f, 6f), 0f)
+            drawLine(
+                color = NeonPurple,
+                start = lastNode,
+                end = nextOffset,
+                strokeWidth = 2.2f,
+                pathEffect = dashEffect
+            )
+
+            // Target Node Ring
+            drawCircle(color = NeonPurple.copy(alpha = 0.3f), radius = 16f, center = nextOffset)
+            drawCircle(color = DarkOledBackground, radius = 10f, center = nextOffset)
+            drawCircle(color = NeonPurple, radius = 10f, center = nextOffset, style = Stroke(width = 2f))
+
+            // Label
+            val targetPaint = android.graphics.Paint().apply {
+                color = android.graphics.Color.WHITE
+                textSize = 24f
+                isFakeBoldText = true
+                textAlign = android.graphics.Paint.Align.CENTER
+                isAntiAlias = true
+            }
+            drawContext.canvas.nativeCanvas.drawText(
+                nextP.label,
+                nextOffset.x,
+                nextOffset.y - 14f,
+                targetPaint
+            )
+        }
+    }
+
+    // 4. Draw Interactive Wave Node Badges (⓪, ①, ②, ③, ④, ⑤, Ⓐ, Ⓑ, Ⓒ)
+    val textPaint = android.graphics.Paint().apply {
+        color = android.graphics.Color.BLACK
+        textSize = 28f
+        isFakeBoldText = true
+        textAlign = android.graphics.Paint.Align.CENTER
+        isAntiAlias = true
+    }
+
+    val ratioPaint = android.graphics.Paint().apply {
+        color = android.graphics.Color.WHITE
+        textSize = 22f
+        isFakeBoldText = true
+        textAlign = android.graphics.Paint.Align.CENTER
+        isAntiAlias = true
+    }
+
+    nodeOffsets.forEach { (offset, wavePoint, color) ->
+        // Glow Halo
+        drawCircle(
+            color = color.copy(alpha = 0.35f),
+            radius = 18f,
+            center = offset
+        )
+        // Solid Badge Center
+        drawCircle(
+            color = color,
+            radius = 12f,
+            center = offset
+        )
+        drawCircle(
+            color = Color.White,
+            radius = 12f,
+            center = offset,
+            style = Stroke(width = 1.5f)
+        )
+
+        // Draw Wave Number/Letter inside badge
+        drawContext.canvas.nativeCanvas.drawText(
+            wavePoint.label,
+            offset.x,
+            offset.y + 9f,
+            textPaint
+        )
+
+        // Draw Fibonacci / Wave ratio tooltip above or below pivot
+        if (wavePoint.fibRatioText.isNotBlank()) {
+            val labelY = if (wavePoint.isHigh) offset.y - 20f else offset.y + 32f
+            drawContext.canvas.nativeCanvas.drawText(
+                wavePoint.fibRatioText,
+                offset.x,
+                labelY,
+                ratioPaint
+            )
+        }
     }
 }
 
@@ -541,7 +1051,6 @@ private fun DrawScope.drawRsiSubChart(
         return (top + height - (rsi / 100.0 * height)).toFloat()
     }
 
-    // 70 overbought and 30 oversold reference lines
     val dashEffect = PathEffect.dashPathEffect(floatArrayOf(4f, 4f), 0f)
     val y70 = rsiToY(70.0)
     val y30 = rsiToY(30.0)
@@ -613,4 +1122,216 @@ private fun DrawScope.drawMacdSubChart(
     // MACD line & Signal line
     drawIndicatorLine(candles, candleWidth, { it.indicators.macd }, IndicatorMACD, 1.8f) { macdToY(it) }
     drawIndicatorLine(candles, candleWidth, { it.indicators.macdSignal }, IndicatorSignal, 1.8f) { macdToY(it) }
+}
+
+@OptIn(ExperimentalLayoutApi::class)
+@Composable
+fun CustomDaysIntervalDialog(
+    currentDays: Int,
+    onDismiss: () -> Unit,
+    onApply: (Int) -> Unit
+) {
+    var tempDays by remember { mutableIntStateOf(currentDays.coerceIn(1, 365)) }
+    val presetDays = listOf(2, 3, 4, 5, 7, 10, 14, 20, 30, 60, 120)
+
+    val strategyDescription = when {
+        tempDays == 1 -> "1일(단일 거래일) 표준 일봉"
+        tempDays in 2..3 -> "${tempDays}일봉: 단기 변곡점 및 급등주 단타/스윙 타이밍 포착"
+        tempDays in 4..7 -> "${tempDays}일봉: 1주일 단위 단기 스윙 및 눌림목 지지선 분석"
+        tempDays in 8..15 -> "${tempDays}일봉: 2주 단위 중기 추세 및 기관/외인 수급 사이클 추종"
+        tempDays in 16..30 -> "${tempDays}일봉: 1개월 단위 월간 모멘텀 및 골든크로스 검증"
+        tempDays in 31..60 -> "${tempDays}일봉: 분기(Quarter) 단위 실적 발표 및 대세 상승장 파동"
+        else -> "${tempDays}일봉: 반기/연간 장기 메가트렌드 및 밸류에이션 추세"
+    }
+
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        containerColor = DarkSurface,
+        title = {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Icon(
+                    imageVector = Icons.Filled.CalendarMonth,
+                    contentDescription = null,
+                    tint = NeonCyan,
+                    modifier = Modifier.size(22.dp)
+                )
+                Spacer(modifier = Modifier.width(8.dp))
+                Text(
+                    text = "원하는 Days(일) 간격 설정",
+                    color = TextPrimary,
+                    fontSize = 18.sp,
+                    fontWeight = FontWeight.Bold
+                )
+            }
+        },
+        text = {
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(vertical = 4.dp),
+                verticalArrangement = Arrangement.spacedBy(14.dp)
+            ) {
+                Text(
+                    text = "원하는 일봉 간격을 직접 조절하거나 프리셋을 선택하여 멀티 데이 캔들 차트를 구성합니다.",
+                    color = TextSecondary,
+                    fontSize = 13.sp,
+                    lineHeight = 18.sp
+                )
+
+                // Stepper Row
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clip(RoundedCornerShape(12.dp))
+                        .background(DarkOledBackground)
+                        .padding(horizontal = 12.dp, vertical = 8.dp),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    IconButton(
+                        onClick = {
+                            if (tempDays > 1) {
+                                tempDays--
+                            }
+                        },
+                        modifier = Modifier
+                            .size(36.dp)
+                            .clip(CircleShape)
+                            .background(DarkSurfaceVariant)
+                            .testTag("custom_days_minus_btn")
+                    ) {
+                        Icon(imageVector = Icons.Filled.Remove, contentDescription = "감소", tint = TextPrimary)
+                    }
+
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Text(
+                            text = "$tempDays",
+                            color = NeonCyan,
+                            fontSize = 28.sp,
+                            fontWeight = FontWeight.Black,
+                            fontFamily = FontFamily.Monospace
+                        )
+                        Spacer(modifier = Modifier.width(4.dp))
+                        Text(
+                            text = "일봉 간격",
+                            color = TextPrimary,
+                            fontSize = 14.sp,
+                            fontWeight = FontWeight.Bold
+                        )
+                    }
+
+                    IconButton(
+                        onClick = {
+                            if (tempDays < 365) {
+                                tempDays++
+                            }
+                        },
+                        modifier = Modifier
+                            .size(36.dp)
+                            .clip(CircleShape)
+                            .background(DarkSurfaceVariant)
+                            .testTag("custom_days_plus_btn")
+                    ) {
+                        Icon(imageVector = Icons.Filled.Add, contentDescription = "증가", tint = TextPrimary)
+                    }
+                }
+
+                // Slider
+                Column {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween
+                    ) {
+                        Text("1일", color = TextMuted, fontSize = 11.sp)
+                        Text("60일", color = TextMuted, fontSize = 11.sp)
+                        Text("120일", color = TextMuted, fontSize = 11.sp)
+                    }
+                    Slider(
+                        value = tempDays.toFloat().coerceIn(1f, 120f),
+                        onValueChange = {
+                            tempDays = it.toInt().coerceIn(1, 365)
+                        },
+                        valueRange = 1f..120f,
+                        colors = SliderDefaults.colors(
+                            thumbColor = NeonCyan,
+                            activeTrackColor = NeonCyan,
+                            inactiveTrackColor = DarkBorder
+                        )
+                    )
+                }
+
+                // Quick Presets
+                Column {
+                    Text(
+                        text = "빠른 일(Days)수 프리셋",
+                        color = TextSecondary,
+                        fontSize = 12.sp,
+                        fontWeight = FontWeight.SemiBold
+                    )
+                    Spacer(modifier = Modifier.height(6.dp))
+                    FlowRow(
+                        horizontalArrangement = Arrangement.spacedBy(6.dp),
+                        verticalArrangement = Arrangement.spacedBy(6.dp)
+                    ) {
+                        presetDays.forEach { days ->
+                            val isCurrent = tempDays == days
+                            Surface(
+                                onClick = {
+                                    tempDays = days
+                                },
+                                shape = RoundedCornerShape(8.dp),
+                                color = if (isCurrent) NeonCyan else DarkSurfaceVariant,
+                                border = if (isCurrent) null else androidx.compose.foundation.BorderStroke(1.dp, DarkBorder),
+                                modifier = Modifier.testTag("preset_day_${days}_btn")
+                            ) {
+                                Text(
+                                    text = "${days}일",
+                                    color = if (isCurrent) Color.Black else TextPrimary,
+                                    fontSize = 12.sp,
+                                    fontWeight = if (isCurrent) FontWeight.Bold else FontWeight.Normal,
+                                    modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp)
+                                )
+                            }
+                        }
+                    }
+                }
+
+                // Strategy guide box
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clip(RoundedCornerShape(8.dp))
+                        .background(NeonCyan.copy(alpha = 0.1f))
+                        .border(1.dp, NeonCyan.copy(alpha = 0.3f), RoundedCornerShape(8.dp))
+                        .padding(10.dp)
+                ) {
+                    Text(
+                        text = "💡 $strategyDescription",
+                        color = NeonCyan,
+                        fontSize = 12.sp,
+                        lineHeight = 16.sp
+                    )
+                }
+            }
+        },
+        confirmButton = {
+            Button(
+                onClick = { onApply(tempDays) },
+                colors = ButtonDefaults.buttonColors(containerColor = NeonCyan, contentColor = Color.Black),
+                shape = RoundedCornerShape(8.dp),
+                modifier = Modifier.testTag("apply_custom_days_btn")
+            ) {
+                Text("${tempDays}일봉 적용", fontWeight = FontWeight.Bold)
+            }
+        },
+        dismissButton = {
+            OutlinedButton(
+                onClick = onDismiss,
+                shape = RoundedCornerShape(8.dp),
+                border = androidx.compose.foundation.BorderStroke(1.dp, DarkBorder)
+            ) {
+                Text("취소", color = TextSecondary)
+            }
+        }
+    )
 }

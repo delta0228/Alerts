@@ -379,16 +379,17 @@ fun BacktestScreen(
                                 )
                                 Spacer(modifier = Modifier.height(6.dp))
                                 Row(
-                                    modifier = Modifier.fillMaxWidth(),
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .horizontalScroll(rememberScrollState()),
                                     horizontalArrangement = Arrangement.spacedBy(6.dp)
                                 ) {
-                                    listOf(ChartTimeframe.M1, ChartTimeframe.M5, ChartTimeframe.M15, ChartTimeframe.DAILY).forEach { tf ->
+                                    ChartTimeframe.values().forEach { tf ->
                                         val isSelected = tf == selectedTimeframe
                                         Surface(
                                             shape = RoundedCornerShape(8.dp),
                                             color = if (isSelected) BrandPrimary else DarkSurfaceVariant,
                                             modifier = Modifier
-                                                .weight(1f)
                                                 .clickable {
                                                     selectedTimeframe = tf
                                                     selectedPresetId = null
@@ -397,10 +398,10 @@ fun BacktestScreen(
                                             Text(
                                                 text = tf.label,
                                                 fontSize = 12.sp,
-                                                fontWeight = FontWeight.Medium,
+                                                fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
                                                 color = if (isSelected) Color.White else TextSecondary,
                                                 textAlign = TextAlign.Center,
-                                                modifier = Modifier.padding(vertical = 8.dp)
+                                                modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp)
                                             )
                                         }
                                     }

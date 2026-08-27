@@ -107,6 +107,36 @@ object RuleEvaluationEngine {
                     )
                 }
             }
+            RuleType.ELLIOTT_WAVE_3_IMPULSE -> {
+                val elliott = ElliottWaveEngine.analyzeElliottWaves(candles)
+                if (elliott.currentPhase == com.example.model.WavePhase.WAVE_3_IMPULSE) {
+                    return EvaluationResult(
+                        isTriggered = true,
+                        message = "🌊 엘리엇 3파 급등 국면 진입! (목표가: %,.0f원)".format(elliott.targetPrice),
+                        triggeredPrice = currentPrice
+                    )
+                }
+            }
+            RuleType.ELLIOTT_WAVE_4_PULLBACK -> {
+                val elliott = ElliottWaveEngine.analyzeElliottWaves(candles)
+                if (elliott.currentPhase == com.example.model.WavePhase.WAVE_4_CONSOLIDATION) {
+                    return EvaluationResult(
+                        isTriggered = true,
+                        message = "🌊 엘리엇 4파 눌림목 지지선 도달 (지지선: %,.0f원)".format(elliott.supportPrice),
+                        triggeredPrice = currentPrice
+                    )
+                }
+            }
+            RuleType.ELLIOTT_WAVE_5_TOP -> {
+                val elliott = ElliottWaveEngine.analyzeElliottWaves(candles)
+                if (elliott.currentPhase == com.example.model.WavePhase.WAVE_5_CLIMAX) {
+                    return EvaluationResult(
+                        isTriggered = true,
+                        message = "⚠️ 엘리엇 5파 최고점 도달 경고! 분할 익절 고려",
+                        triggeredPrice = currentPrice
+                    )
+                }
+            }
             RuleType.MA_GOLDEN_CROSS -> {
                 if (lastCandle != null && prevCandle != null) {
                     val fastLast = getMA(lastCandle, rule.param1)

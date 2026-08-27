@@ -37,7 +37,7 @@ class StockDataManager(
     private val _stocks = MutableStateFlow<List<Stock>>(emptyList())
     val stocks: StateFlow<List<Stock>> = _stocks.asStateFlow()
 
-    private val candleCache = ConcurrentHashMap<String, MutableMap<ChartTimeframe, List<CalculatedCandle>>>()
+    private val candleCache = ConcurrentHashMap<String, MutableMap<String, List<CalculatedCandle>>>()
 
     private val _isMonitoring = MutableStateFlow(true)
     val isMonitoring: StateFlow<Boolean> = _isMonitoring.asStateFlow()
@@ -124,38 +124,74 @@ class StockDataManager(
         }
     }
 
-    fun getCandles(symbol: String, timeframe: ChartTimeframe): List<CalculatedCandle> {
+    fun getCandles(symbol: String, timeframe: ChartTimeframe, customDays: Int = 1): List<CalculatedCandle> {
+        val key = if (timeframe == ChartTimeframe.CUSTOM_DAYS) "CUSTOM_DAYS_$customDays" else timeframe.name
         val stockMap = candleCache.getOrPut(symbol) { ConcurrentHashMap() }
-        return stockMap.getOrPut(timeframe) {
+        return stockMap.getOrPut(key) {
             val stock = _stocks.value.find { it.symbol == symbol } ?: return emptyList()
-            generateCandles(stock, timeframe)
+            generateCandles(stock, timeframe, customDays)
         }
     }
 
     private fun generateCandlesForStock(stock: Stock) {
         ChartTimeframe.values().forEach { tf ->
-            val candles = generateCandles(stock, tf)
-            candleCache.getOrPut(stock.symbol) { ConcurrentHashMap() }[tf] = candles
+            val candles = generateCandles(stock, tf, 1)
+            candleCache.getOrPut(stock.symbol) { ConcurrentHashMap() }[tf.name] = candles
         }
     }
 
-    private fun generateCandles(stock: Stock, timeframe: ChartTimeframe): List<CalculatedCandle> {
+    private fun generateCandles(stock: Stock, timeframe: ChartTimeframe, customDays: Int = 1): List<CalculatedCandle> {
         val count = 80
         val basePrice = stock.prevClosePrice
         val now = System.currentTimeMillis()
-        val intervalMs = timeframe.minutes * 60 * 1000L
+        val effectiveMinutes = if (timeframe == ChartTimeframe.CUSTOM_DAYS) {
+            customDays.coerceAtLeast(1) * 1440
+        } else {
+            timeframe.minutes
+        }
+        val intervalMs = effectiveMinutes * 60 * 1000L
         val rawCandles = mutableListOf<Candle>()
 
-        var currentClose = basePrice * (0.92 + Random.nextDouble() * 0.05)
+        val volatilityFactor = when (timeframe) {
+            ChartTimeframe.M1 -> 0.005
+            ChartTimeframe.M5 -> 0.008
+            ChartTimeframe.M15 -> 0.012
+            ChartTimeframe.H1 -> 0.018
+            ChartTimeframe.DAILY -> 0.025
+            ChartTimeframe.D2 -> 0.030
+            ChartTimeframe.D3 -> 0.035
+            ChartTimeframe.D5 -> 0.042
+            ChartTimeframe.D10 -> 0.055
+            ChartTimeframe.WEEKLY -> 0.045
+            ChartTimeframe.MONTHLY -> 0.075
+            ChartTimeframe.CUSTOM_DAYS -> (0.025 * kotlin.math.sqrt(customDays.toDouble().coerceAtLeast(1.0))).coerceIn(0.025, 0.12)
+        }
+
+        val volumeMultiplier = when (timeframe) {
+            ChartTimeframe.M1, ChartTimeframe.M5 -> 1.0
+            ChartTimeframe.M15 -> 2.5
+            ChartTimeframe.H1 -> 8.0
+            ChartTimeframe.DAILY -> 25.0
+            ChartTimeframe.D2 -> 45.0
+            ChartTimeframe.D3 -> 65.0
+            ChartTimeframe.D5 -> 100.0
+            ChartTimeframe.D10 -> 180.0
+            ChartTimeframe.WEEKLY -> 120.0
+            ChartTimeframe.MONTHLY -> 500.0
+            ChartTimeframe.CUSTOM_DAYS -> (25.0 * customDays.coerceAtLeast(1)).coerceAtLeast(25.0)
+        }
+
+        var currentClose = basePrice * (0.88 + Random.nextDouble() * 0.12)
         for (i in count downTo 0) {
             val time = now - (i * intervalMs)
-            val volatility = currentClose * 0.008
+            val volatility = currentClose * volatilityFactor
             val open = currentClose
-            val delta = (Random.nextDouble() - 0.48) * volatility * 2
+            val delta = (Random.nextDouble() - 0.485) * volatility * 2
             val close = (open + delta).coerceAtLeast(1.0)
             val high = maxOf(open, close) + Random.nextDouble() * volatility
             val low = minOf(open, close) - Random.nextDouble() * volatility
-            val volume = (Random.nextDouble(0.5, 2.5) * (stock.volume / count)).toLong().coerceAtLeast(100)
+            val baseVol = ((stock.volume / count) * volumeMultiplier).toLong().coerceAtLeast(100L)
+            val volume = (Random.nextDouble(0.5, 2.5) * baseVol).toLong().coerceAtLeast(100L)
 
             rawCandles.add(
                 Candle(

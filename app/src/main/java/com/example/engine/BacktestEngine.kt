@@ -470,6 +470,18 @@ object BacktestEngine {
                 val changeRate = ((current.candle.close - prev.candle.close) / prev.candle.close) * 100.0
                 changeRate <= -threshold
             }
+
+            RuleType.ELLIOTT_WAVE_3_IMPULSE -> {
+                current.candle.isBullish && current.candle.close > prev.candle.high
+            }
+
+            RuleType.ELLIOTT_WAVE_4_PULLBACK -> {
+                !prev.candle.isBullish && current.candle.isBullish && current.candle.close > prev.candle.close
+            }
+
+            RuleType.ELLIOTT_WAVE_5_TOP -> {
+                current.candle.high > prev.candle.high && !current.candle.isBullish
+            }
         }
     }
 

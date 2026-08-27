@@ -49,5 +49,18 @@ enum class ChartTimeframe(val label: String, val minutes: Int) {
     M15("15분", 15),
     H1("1시간", 60),
     DAILY("일봉", 1440),
-    WEEKLY("주봉", 10080)
+    D2("2일", 2880),
+    D3("3일", 4320),
+    D5("5일", 7200),
+    D10("10일", 14400),
+    WEEKLY("주봉", 10080),
+    MONTHLY("월봉", 43200),
+    CUSTOM_DAYS("N일", 1440);
+
+    fun getDisplayLabel(customDays: Int = 1): String {
+        return when (this) {
+            CUSTOM_DAYS -> "${customDays}일"
+            else -> label
+        }
+    }
 }

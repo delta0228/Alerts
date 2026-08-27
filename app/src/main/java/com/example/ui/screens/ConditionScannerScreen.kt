@@ -27,6 +27,7 @@ import androidx.compose.material.icons.filled.ElectricBolt
 import androidx.compose.material.icons.filled.FilterAlt
 import androidx.compose.material.icons.filled.NotificationsActive
 import androidx.compose.material.icons.filled.Search
+import androidx.compose.material.icons.filled.ShowChart
 import androidx.compose.material.icons.filled.TrendingUp
 import androidx.compose.material.icons.filled.Warning
 import androidx.compose.material3.Button
@@ -94,6 +95,8 @@ fun ConditionScannerScreen(
 ) {
     val presets = remember {
         listOf(
+            ScanPreset("p_elliott_3", "🌊 엘리엇 3파 급등 포착", "피보나치 1.618x 주도 상승 추진파 진입 종목", Icons.Filled.TrendingUp, NeonGreen, RuleType.ELLIOTT_WAVE_3_IMPULSE, 0.0),
+            ScanPreset("p_elliott_4", "🌊 엘리엇 4파 눌림목 매수", "1파 고점 상단 지지선에서 반등 준비 종목", Icons.Filled.ShowChart, NeonCyan, RuleType.ELLIOTT_WAVE_4_PULLBACK, 0.0),
             ScanPreset("p1", "골든크로스 발생", "5일 이평선이 20일 이평선을 상향 돌파한 종목", Icons.Filled.TrendingUp, NeonGreen, RuleType.MA_GOLDEN_CROSS, 0.0, 5, 20),
             ScanPreset("p2", "RSI 30 이하 과매도", "단기 과매도 구간으로 기술적 반등 유력 종목", Icons.Filled.Bolt, NeonAmber, RuleType.RSI_OVERSOLD, 35.0),
             ScanPreset("p3", "거래량 2배 폭증", "최근 20일 평균 대비 거래량이 200% 이상 급증", Icons.Filled.ElectricBolt, NeonCyan, RuleType.VOLUME_SURGE, 1.8),
