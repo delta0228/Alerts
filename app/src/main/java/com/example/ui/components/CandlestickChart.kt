@@ -312,6 +312,7 @@ fun CandlestickChart(
         if (scrubIndex != null && scrubIndex!! in visibleCandles.indices) {
             val scrubbed = visibleCandles[scrubIndex!!]
             val datePattern = when (selectedTimeframe) {
+                ChartTimeframe.YEARLY -> "yyyy년"
                 ChartTimeframe.MONTHLY -> "yyyy.MM"
                 ChartTimeframe.WEEKLY, ChartTimeframe.DAILY, ChartTimeframe.D2, ChartTimeframe.D3, ChartTimeframe.D5, ChartTimeframe.D10 -> "yy.MM.dd"
                 ChartTimeframe.CUSTOM_DAYS -> "yy.MM.dd (${customDays}일)"

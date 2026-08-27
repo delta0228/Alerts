@@ -164,6 +164,7 @@ class StockDataManager(
             ChartTimeframe.D10 -> 0.055
             ChartTimeframe.WEEKLY -> 0.045
             ChartTimeframe.MONTHLY -> 0.075
+            ChartTimeframe.YEARLY -> 0.120
             ChartTimeframe.CUSTOM_DAYS -> (0.025 * kotlin.math.sqrt(customDays.toDouble().coerceAtLeast(1.0))).coerceIn(0.025, 0.12)
         }
 
@@ -178,6 +179,7 @@ class StockDataManager(
             ChartTimeframe.D10 -> 180.0
             ChartTimeframe.WEEKLY -> 120.0
             ChartTimeframe.MONTHLY -> 500.0
+            ChartTimeframe.YEARLY -> 4000.0
             ChartTimeframe.CUSTOM_DAYS -> (25.0 * customDays.coerceAtLeast(1)).coerceAtLeast(25.0)
         }
 
