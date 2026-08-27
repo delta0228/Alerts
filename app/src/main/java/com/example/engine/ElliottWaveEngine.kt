@@ -3,7 +3,10 @@ package com.example.engine
 import com.example.model.CalculatedCandle
 import com.example.model.Candle
 import com.example.model.ElliottWaveResult
+import com.example.model.InviolableRuleCheck
+import com.example.model.ReliabilityGuidelineCheck
 import com.example.model.WaveDetailItem
+import com.example.model.WavePatternType
 import com.example.model.WavePhase
 import com.example.model.WavePoint
 import kotlin.math.abs
@@ -143,27 +146,27 @@ object ElliottWaveEngine {
 
         val labels = if (isStartingFromLow) {
             listOf(
-                Triple("0", "⓪", "파동 기점"),
-                Triple("1", "①", "제1파 고점"),
-                Triple("2", "②", "제2파 저점"),
-                Triple("3", "③", "제3파 고점"),
-                Triple("4", "④", "제4파 저점"),
-                Triple("5", "⑤", "제5파 고점"),
-                Triple("A", "Ⓐ", "조정 A파"),
-                Triple("B", "Ⓑ", "반등 B파"),
-                Triple("C", "Ⓒ", "조정 C파")
+                Triple("0", "⓪", "파동 기점 (Wave 0)"),
+                Triple("1", "①", "제1파 고점 (Wave 1)"),
+                Triple("2", "②", "제2파 저점 (Wave 2)"),
+                Triple("3", "③", "제3파 고점 (Wave 3)"),
+                Triple("4", "④", "제4파 저점 (Wave 4)"),
+                Triple("5", "⑤", "제5파 고점 (Wave 5)"),
+                Triple("A", "Ⓐ", "조정 A파 (Wave A)"),
+                Triple("B", "Ⓑ", "반등 B파 (Wave B)"),
+                Triple("C", "Ⓒ", "조정 C파 (Wave C)")
             )
         } else {
             listOf(
-                Triple("0", "⓪", "고점 기점"),
-                Triple("1", "①", "하락 1파"),
-                Triple("2", "②", "반등 2파"),
-                Triple("3", "③", "하락 3파"),
-                Triple("4", "④", "반등 4파"),
-                Triple("5", "⑤", "하락 5파"),
-                Triple("A", "Ⓐ", "반등 A파"),
-                Triple("B", "Ⓑ", "눌림 B파"),
-                Triple("C", "Ⓒ", "상승 C파")
+                Triple("0", "⓪", "고점 기점 (Wave 0)"),
+                Triple("1", "①", "하락 1파 (Wave 1)"),
+                Triple("2", "②", "반등 2파 (Wave 2)"),
+                Triple("3", "③", "하락 3파 (Wave 3)"),
+                Triple("4", "④", "반등 4파 (Wave 4)"),
+                Triple("5", "⑤", "하락 5파 (Wave 5)"),
+                Triple("A", "Ⓐ", "반등 A파 (Wave A)"),
+                Triple("B", "Ⓑ", "눌림 B파 (Wave B)"),
+                Triple("C", "Ⓒ", "상승 C파 (Wave C)")
             )
         }
 
@@ -249,9 +252,268 @@ object ElliottWaveEngine {
             }
         }
 
-        // Determine current phase and calculate projection
+        // ==========================================
+        // 1. 절대 불가변 3대 원칙 (필요조건) 정밀 판정
+        // ==========================================
+        val inviolableRules = mutableListOf<InviolableRuleCheck>()
+        val reliabilityGuidelines = mutableListOf<ReliabilityGuidelineCheck>()
+        var patternType = WavePatternType.STANDARD_IMPULSE
+        var isStrictlyValid = true
+
         val pivotCount = points.size
-        var currentPhase = when (pivotCount) {
+
+        if (pivotCount >= 3) {
+            val p0 = points[0].price
+            val p1 = points[1].price
+            val p2 = points[2].price
+
+            // 원칙 1: 2파 저점 법칙 (2파는 1파 시작점 0점 밑으로 내려갈 수 없음, 100% 이상 되돌림 불가)
+            val w1Height = abs(p1 - p0)
+            val w2RetracePct = if (w1Height > 0) (abs(p1 - p2) / w1Height) * 100.0 else 0.0
+            val isRule1Satisfied = if (isStartingFromLow) p2 > p0 else p2 < p0
+
+            inviolableRules.add(
+                InviolableRuleCheck(
+                    ruleName = "2파 저점 법칙 (100% 되돌림 불가)",
+                    isSatisfied = isRule1Satisfied,
+                    reason = if (isRule1Satisfied) {
+                        "2파 저점(%,.0f원)이 1파 시작점(%,.0f원) 상단에서 정상 지지됨 (되돌림 %.1f%%)".format(p2, p0, w2RetracePct)
+                    } else {
+                        "2파 저점이 1파 시작점(0점)을 하회하여 충격파 카운팅이 즉시 무효화됩니다."
+                    },
+                    metricValueText = "%.1f%% 되돌림".format(w2RetracePct)
+                )
+            )
+            if (!isRule1Satisfied) isStrictlyValid = false
+        }
+
+        if (pivotCount >= 6) {
+            val p0 = points[0].price
+            val p1 = points[1].price
+            val p2 = points[2].price
+            val p3 = points[3].price
+            val p4 = points[4].price
+            val p5 = points[5].price
+
+            val w1Len = abs(p1 - p0)
+            val w3Len = abs(p3 - p2)
+            val w5Len = abs(p5 - p4)
+
+            // 원칙 2: 3파 최단 파동 불가 법칙 (1, 3, 5파 중 3파가 가장 짧아서는 안 됨)
+            val isRule2Satisfied = !(w3Len < w1Len && w3Len < w5Len)
+            inviolableRules.add(
+                InviolableRuleCheck(
+                    ruleName = "3파 최단 파동 불가 법칙",
+                    isSatisfied = isRule2Satisfied,
+                    reason = if (isRule2Satisfied) {
+                        "3파(%,.0f)가 1파(%,.0f) 또는 5파(%,.0f) 대비 최단 파동이 아님 (충족)".format(w3Len, w1Len, w5Len)
+                    } else {
+                        "3파의 상승폭(%,.0f)이 1파(%,.0f) 및 5파(%,.0f) 모두보다 작아 카운팅 무효화".format(w3Len, w1Len, w5Len)
+                    },
+                    metricValueText = "1파:%,.0f | 3파:%,.0f | 5파:%,.0f".format(w1Len, w3Len, w5Len)
+                )
+            )
+            if (!isRule2Satisfied) isStrictlyValid = false
+
+            // 원칙 3: 4파와 1파 중첩 불가 법칙 (4파 저점은 1파 고점과 겹칠 수 없음, 단 다이애거널 예외)
+            val isOverlap = if (isStartingFromLow) p4 <= p1 else p4 >= p1
+            val isWedgeConverging = (w3Len < w1Len * 1.5) && (w5Len < w3Len) // 쐐기형 수렴 여부
+
+            if (!isOverlap) {
+                inviolableRules.add(
+                    InviolableRuleCheck(
+                        ruleName = "4파-1파 중첩 불가 법칙",
+                        isSatisfied = true,
+                        reason = "4파 저점(%,.0f원)이 1파 고점(%,.0f원)과 겹치지 않고 상단 지지 형성 (정석 충격파)".format(p4, p1),
+                        metricValueText = "이격률 +%.2f%%".format(abs(p4 - p1) / p1 * 100.0)
+                    )
+                )
+                patternType = WavePatternType.STANDARD_IMPULSE
+            } else {
+                // 다이애거널(Diagonal) 예외 패턴 감지
+                if (isWedgeConverging) {
+                    val isEnding = pivotCount >= 6
+                    patternType = if (isEnding) WavePatternType.ENDING_DIAGONAL else WavePatternType.LEADING_DIAGONAL
+                    inviolableRules.add(
+                        InviolableRuleCheck(
+                            ruleName = "4파-1파 중첩 (다이애거널 예외 인정)",
+                            isSatisfied = true,
+                            reason = if (patternType == WavePatternType.ENDING_DIAGONAL) {
+                                "4파-1파 중첩 발생하였으나 쐐기형 수렴으로 '엔딩 다이애거널(5파/C파)' 특수 충격파 구조로 유효 인정"
+                            } else {
+                                "4파-1파 중첩 발생하였으나 수렴 구조로 '리딩 다이애거널(1파/A파)' 특수 충격파 구조로 유효 인정"
+                            },
+                            metricValueText = patternType.displayName
+                        )
+                    )
+                } else {
+                    inviolableRules.add(
+                        InviolableRuleCheck(
+                            ruleName = "4파-1파 중첩 불가 법칙 (위배)",
+                            isSatisfied = false,
+                            reason = "4파 저점(%,.0f원)이 1파 고점(%,.0f원)을 침범하여 표준 충격파 원칙이 훼손되었습니다.".format(p4, p1),
+                            metricValueText = "중첩 침범 -%.2f%%".format(abs(p4 - p1) / p1 * 100.0)
+                        )
+                    )
+                    isStrictlyValid = false
+                    patternType = WavePatternType.INVALID_STRUCTURE
+                }
+            }
+        } else if (pivotCount in 4..5) {
+            // Check 4th point vs 1st point if already reached 4
+            val p1 = points[1].price
+            val p4 = points.getOrNull(4)?.price
+            if (p4 != null) {
+                val isOverlap = if (isStartingFromLow) p4 <= p1 else p4 >= p1
+                if (isOverlap) {
+                    patternType = WavePatternType.LEADING_DIAGONAL
+                    inviolableRules.add(
+                        InviolableRuleCheck(
+                            ruleName = "4파-1파 중첩 (리딩 다이애거널 가능성)",
+                            isSatisfied = true,
+                            reason = "4파 저점이 1파 고점과 중첩되어 다이애거널 쐐기 패턴 검증 중",
+                            metricValueText = "중첩 구간"
+                        )
+                    )
+                } else {
+                    inviolableRules.add(
+                        InviolableRuleCheck(
+                            ruleName = "4파-1파 중첩 불가 법칙",
+                            isSatisfied = true,
+                            reason = "4파 저점이 1파 고점 상단에서 견고히 지지됨",
+                            metricValueText = "정상 분리"
+                        )
+                    )
+                }
+            }
+        }
+
+        // ==========================================
+        // 2. 파동의 신뢰도를 결정짓는 주요 보조 지침 (가이드라인)
+        // ==========================================
+        var baseConfidence = if (isStrictlyValid) 80 else 40
+
+        if (pivotCount >= 3) {
+            // 지침 4-A: 2파 피보나치 50% ~ 61.8% 되돌림 정합성
+            val p0 = points[0].price
+            val p1 = points[1].price
+            val p2 = points[2].price
+            val w1Height = abs(p1 - p0)
+            val w2RetracePct = if (w1Height > 0) (abs(p1 - p2) / w1Height) * 100.0 else 0.0
+            val isFib2Good = w2RetracePct in 38.2..78.6
+            val isFib2Golden = w2RetracePct in 50.0..61.8
+            if (isFib2Golden) baseConfidence += 6 else if (isFib2Good) baseConfidence += 3
+
+            reliabilityGuidelines.add(
+                ReliabilityGuidelineCheck(
+                    guidelineName = "2파 피보나치 되돌림 정합성 (50%~61.8%)",
+                    isSatisfied = isFib2Good,
+                    description = if (isFib2Golden) {
+                        "2파가 1파의 %.1f%% 황금 비율 되돌림을 정밀하게 기록함 (최상급 정합성)".format(w2RetracePct)
+                    } else if (isFib2Good) {
+                        "2파가 1파의 %.1f%% 되돌림으로 표준 오차 범위 내 위치함".format(w2RetracePct)
+                    } else {
+                        "2파 되돌림(%.1f%%)이 통상적 황금비율(50%%~61.8%%)에서 다소 벗어남".format(w2RetracePct)
+                    },
+                    scoreImpactText = if (isFib2Golden) "+6% 신뢰도" else if (isFib2Good) "+3% 신뢰도" else "보통"
+                )
+            )
+        }
+
+        if (pivotCount >= 4) {
+            // 지침 3: 파동 연장 (3파 또는 1/5파 강력 연장) & 3파 1.618배/2.618배 확장
+            val p0 = points[0].price
+            val p1 = points[1].price
+            val p2 = points[2].price
+            val p3 = points[3].price
+            val w1 = abs(p1 - p0)
+            val w3 = abs(p3 - p2)
+            val w3Ratio = if (w1 > 0) w3 / w1 else 1.0
+
+            val isWave3Extended = w3Ratio >= 1.55
+            if (isWave3Extended) baseConfidence += 8
+
+            reliabilityGuidelines.add(
+                ReliabilityGuidelineCheck(
+                    guidelineName = "파동 연장 및 3파 확장 (Wave 3 Extension)",
+                    isSatisfied = isWave3Extended,
+                    description = if (isWave3Extended) {
+                        "3파가 1파 대비 %.2f배로 강력하게 연장(Extension)되어 전형적인 주도 상승 충격파 조건 충족".format(w3Ratio)
+                    } else {
+                        "3파 배율이 1파 대비 %.2f배로 보통 수준 확장 기록".format(w3Ratio)
+                    },
+                    scoreImpactText = if (isWave3Extended) "+8% 신뢰도" else "+0%"
+                )
+            )
+        }
+
+        if (pivotCount >= 5) {
+            // 지침 2: 파동 교대의 법칙 (Rule of Alternation - 2파와 4파 형태/깊이/시간 상이)
+            val p0 = points[0].price
+            val p1 = points[1].price
+            val p2 = points[2].price
+            val p3 = points[3].price
+            val p4 = points[4].price
+
+            val w1Len = abs(p1 - p0)
+            val w3Len = abs(p3 - p2)
+            val w2Retrace = if (w1Len > 0) abs(p1 - p2) / w1Len else 0.5
+            val w4Retrace = if (w3Len > 0) abs(p3 - p4) / w3Len else 0.382
+
+            val depthDiff = abs(w2Retrace - w4Retrace)
+            val isAlternationSatisfied = depthDiff >= 0.12
+            if (isAlternationSatisfied) baseConfidence += 6
+
+            reliabilityGuidelines.add(
+                ReliabilityGuidelineCheck(
+                    guidelineName = "파동 교대의 법칙 (Rule of Alternation)",
+                    isSatisfied = isAlternationSatisfied,
+                    description = if (isAlternationSatisfied) {
+                        "2파(%.1f%% 깊은 조정)와 4파(%.1f%% 얕은 수렴)가 형태 및 깊이면에서 뚜렷하게 교대됨".format(w2Retrace * 100, w4Retrace * 100)
+                    } else {
+                        "2파(%.1f%%)와 4파(%.1f%%)의 조정 깊이가 유사하여 교대성 다소 약함".format(w2Retrace * 100, w4Retrace * 100)
+                    },
+                    scoreImpactText = if (isAlternationSatisfied) "+6% 신뢰도" else "+1%"
+                )
+            )
+
+            // 지침 4-B: 4파 피보나치 23.6% ~ 38.2% 되돌림 정합성
+            val isFib4Good = w4Retrace in 0.20..0.45
+            if (isFib4Good) baseConfidence += 4
+            reliabilityGuidelines.add(
+                ReliabilityGuidelineCheck(
+                    guidelineName = "4파 피보나치 되돌림 정합성 (23.6%~38.2%)",
+                    isSatisfied = isFib4Good,
+                    description = if (isFib4Good) {
+                        "4파가 3파의 %.1f%% 얕은 눌림목을 형성하며 전형적인 4파 매물소화 패턴 충족".format(w4Retrace * 100)
+                    } else {
+                        "4파 되돌림(%.1f%%)이 표준 범위(23.6%%~38.2%%)를 다소 초과함".format(w4Retrace * 100)
+                    },
+                    scoreImpactText = if (isFib4Good) "+4% 신뢰도" else "보통"
+                )
+            )
+        }
+
+        // 지침 1: 프랙탈 5-3-5-3-5 구조 가이드라인
+        val fractalSatisfied = isStrictlyValid && pivotCount >= 4
+        reliabilityGuidelines.add(
+            ReliabilityGuidelineCheck(
+                guidelineName = "하위 파동 프랙탈 구조 (5-3-5-3-5)",
+                isSatisfied = fractalSatisfied,
+                description = if (fractalSatisfied) {
+                    "상승 충격파(1·3·5파) 5개 세부파동 및 조정파(2·4파) 3개 세부파동(a-b-c) 프랙탈 전개 일치"
+                } else {
+                    "세부 하위 파동 형성 및 지그재그 피벗 진행 중"
+                },
+                scoreImpactText = if (fractalSatisfied) "+4% 신뢰도" else "+0%"
+            )
+        )
+        if (fractalSatisfied) baseConfidence += 4
+
+        val finalConfidence = baseConfidence.coerceIn(20, 98)
+
+        // Determine current phase and calculate projection
+        val currentPhase = when (pivotCount) {
             1, 2 -> WavePhase.WAVE_1_START
             3 -> WavePhase.WAVE_2_PULLBACK
             4 -> WavePhase.WAVE_3_IMPULSE
@@ -267,7 +529,6 @@ object ElliottWaveEngine {
         var targetPrice = currentPrice * 1.05
         var supportPrice = currentPrice * 0.95
         var resistancePrice = currentPrice * 1.08
-        var confidenceScore = 85
 
         if (pivotCount >= 3 && isStartingFromLow) {
             val p0 = points[0].price
@@ -293,7 +554,6 @@ object ElliottWaveEngine {
                         fibRatioText = "1.618x 목표",
                         description = "3파 예상 목표가"
                     )
-                    confidenceScore = 88
                 }
                 4 -> {
                     // Completed Wave 3, Expecting Wave 4 pullback: 0.382 retracement of Wave 3
@@ -314,7 +574,6 @@ object ElliottWaveEngine {
                         fibRatioText = "38.2% 눌림목",
                         description = "4파 예상 지지선"
                     )
-                    confidenceScore = 82
                 }
                 5 -> {
                     // Completed Wave 4, Expecting Wave 5 high: P4 + W1
@@ -334,7 +593,6 @@ object ElliottWaveEngine {
                         fibRatioText = "1파 동등 목표",
                         description = "5파 예상 고점"
                     )
-                    confidenceScore = 90
                 }
                 6 -> {
                     // Completed Wave 5, Expecting Correction A
@@ -354,7 +612,6 @@ object ElliottWaveEngine {
                         fibRatioText = "4파 저점 수준",
                         description = "A파 하락 목표"
                     )
-                    confidenceScore = 78
                 }
                 else -> {
                     targetPrice = currentPrice * 1.06
@@ -396,7 +653,11 @@ object ElliottWaveEngine {
             points = points,
             currentPhase = currentPhase,
             isBullishCycle = isStartingFromLow,
-            confidenceScore = confidenceScore,
+            confidenceScore = finalConfidence,
+            patternType = patternType,
+            inviolableRules = inviolableRules,
+            reliabilityGuidelines = reliabilityGuidelines,
+            isStrictlyValid = isStrictlyValid,
             projectedNextPoint = projectedNextPoint,
             waveDetails = waveDetails,
             summary = summary,

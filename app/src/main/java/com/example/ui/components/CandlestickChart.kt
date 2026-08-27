@@ -28,14 +28,21 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.AutoGraph
 import androidx.compose.material.icons.filled.CalendarMonth
+import androidx.compose.material.icons.filled.Cancel
+import androidx.compose.material.icons.filled.CheckCircle
+import androidx.compose.material.icons.filled.CheckCircleOutline
+import androidx.compose.material.icons.filled.ErrorOutline
 import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.KeyboardArrowDown
 import androidx.compose.material.icons.filled.KeyboardArrowUp
 import androidx.compose.material.icons.filled.Remove
+import androidx.compose.material.icons.filled.Rule
+import androidx.compose.material.icons.filled.Security
 import androidx.compose.material.icons.filled.ShowChart
 import androidx.compose.material.icons.filled.Timeline
 import androidx.compose.material.icons.filled.TrendingUp
 import androidx.compose.material.icons.filled.Tune
+import androidx.compose.material.icons.filled.Verified
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
@@ -77,7 +84,10 @@ import com.example.engine.ElliottWaveEngine
 import com.example.model.CalculatedCandle
 import com.example.model.ChartTimeframe
 import com.example.model.ElliottWaveResult
+import com.example.model.InviolableRuleCheck
+import com.example.model.ReliabilityGuidelineCheck
 import com.example.model.Stock
+import com.example.model.WavePatternType
 import com.example.model.WavePhase
 import com.example.model.WavePoint
 import com.example.ui.theme.DarkBorder
@@ -445,11 +455,14 @@ private fun ElliottWaveAnalysisCard(
     Card(
         shape = RoundedCornerShape(12.dp),
         colors = CardDefaults.cardColors(containerColor = DarkSurfaceVariant),
-        border = androidx.compose.foundation.BorderStroke(1.dp, NeonCyan.copy(alpha = 0.5f)),
+        border = androidx.compose.foundation.BorderStroke(
+            1.dp,
+            if (result.isStrictlyValid) NeonCyan.copy(alpha = 0.5f) else NeonRed.copy(alpha = 0.6f)
+        ),
         modifier = Modifier.fillMaxWidth().testTag("elliott_analysis_card")
     ) {
         Column(modifier = Modifier.padding(12.dp)) {
-            // Header Row: Phase Badge & Confidence
+            // Header Row: Phase Badge, Validity & Confidence
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween,
@@ -488,12 +501,40 @@ private fun ElliottWaveAnalysisCard(
                         )
                     }
 
-                    Spacer(modifier = Modifier.width(8.dp))
+                    Spacer(modifier = Modifier.width(6.dp))
+
+                    // Invalidation / Pattern Type Tag
+                    Surface(
+                        shape = RoundedCornerShape(6.dp),
+                        color = Color(result.patternType.badgeColorHex).copy(alpha = 0.15f),
+                        border = androidx.compose.foundation.BorderStroke(1.dp, Color(result.patternType.badgeColorHex).copy(alpha = 0.7f))
+                    ) {
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
+                        ) {
+                            Icon(
+                                imageVector = if (result.isStrictlyValid) Icons.Filled.Verified else Icons.Filled.ErrorOutline,
+                                contentDescription = null,
+                                tint = Color(result.patternType.badgeColorHex),
+                                modifier = Modifier.size(11.dp)
+                            )
+                            Spacer(modifier = Modifier.width(3.dp))
+                            Text(
+                                text = if (result.isStrictlyValid) "3대원칙 준수" else "원칙 위배(무효)",
+                                fontSize = 10.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = Color(result.patternType.badgeColorHex)
+                            )
+                        }
+                    }
+
+                    Spacer(modifier = Modifier.width(6.dp))
                     Text(
-                        text = "파동 신뢰도 ${result.confidenceScore}%",
+                        text = "신뢰도 ${result.confidenceScore}%",
                         fontSize = 11.sp,
                         fontFamily = FontFamily.Monospace,
-                        color = TextSecondary
+                        color = if (result.confidenceScore >= 80) NeonGreen else if (result.confidenceScore >= 60) NeonCyan else NeonRed
                     )
                 }
 
@@ -547,13 +588,159 @@ private fun ElliottWaveAnalysisCard(
                 LevelBadge(label = "상단 저항선", price = result.resistancePrice, color = NeonRed)
             }
 
-            // Expandable Wave Breakdown Table
+            // Expandable Wave Breakdown & 3 Absolute Rules & Guidelines
             AnimatedVisibility(visible = isExpanded) {
                 Column(modifier = Modifier.padding(top = 10.dp)) {
                     HorizontalDivider(color = DarkBorder)
                     Spacer(modifier = Modifier.height(8.dp))
+
+                    // 1. 절대 불가변 3대 원칙 (필요조건) 상태 섹션
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Icon(
+                            imageVector = Icons.Filled.Security,
+                            contentDescription = null,
+                            tint = if (result.isStrictlyValid) NeonGreen else NeonRed,
+                            modifier = Modifier.size(14.dp)
+                        )
+                        Spacer(modifier = Modifier.width(4.dp))
+                        Text(
+                            text = "엘리엇 충격파 3대 절대 불가변 법칙 (필요조건 검증)",
+                            fontSize = 11.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = if (result.isStrictlyValid) NeonGreen else NeonRed
+                        )
+                    }
+                    Spacer(modifier = Modifier.height(5.dp))
+
+                    result.inviolableRules.forEach { rule ->
+                        Surface(
+                            shape = RoundedCornerShape(6.dp),
+                            color = if (rule.isSatisfied) DarkSurface else NeonRed.copy(alpha = 0.12f),
+                            border = androidx.compose.foundation.BorderStroke(
+                                1.dp,
+                                if (rule.isSatisfied) DarkBorder else NeonRed.copy(alpha = 0.5f)
+                            ),
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(vertical = 2.dp)
+                        ) {
+                            Row(
+                                modifier = Modifier.padding(horizontal = 8.dp, vertical = 5.dp),
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Icon(
+                                    imageVector = if (rule.isSatisfied) Icons.Filled.CheckCircle else Icons.Filled.Cancel,
+                                    contentDescription = null,
+                                    tint = if (rule.isSatisfied) NeonGreen else NeonRed,
+                                    modifier = Modifier.size(13.dp)
+                                )
+                                Spacer(modifier = Modifier.width(6.dp))
+                                Column(modifier = Modifier.weight(1f)) {
+                                    Row(
+                                        modifier = Modifier.fillMaxWidth(),
+                                        horizontalArrangement = Arrangement.SpaceBetween
+                                    ) {
+                                        Text(
+                                            text = rule.ruleName,
+                                            fontSize = 10.sp,
+                                            fontWeight = FontWeight.Bold,
+                                            color = if (rule.isSatisfied) TextPrimary else NeonRed
+                                        )
+                                        if (rule.metricValueText.isNotBlank()) {
+                                            Text(
+                                                text = rule.metricValueText,
+                                                fontSize = 9.sp,
+                                                fontFamily = FontFamily.Monospace,
+                                                color = if (rule.isSatisfied) NeonCyan else NeonRed
+                                            )
+                                        }
+                                    }
+                                    Text(
+                                        text = rule.reason,
+                                        fontSize = 9.5.sp,
+                                        color = TextSecondary,
+                                        lineHeight = 13.sp
+                                    )
+                                }
+                            }
+                        }
+                    }
+
+                    Spacer(modifier = Modifier.height(10.dp))
+
+                    // 2. 신뢰도 보조 지침 (충분조건 가이드) 섹션
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Icon(
+                            imageVector = Icons.Filled.Rule,
+                            contentDescription = null,
+                            tint = NeonCyan,
+                            modifier = Modifier.size(14.dp)
+                        )
+                        Spacer(modifier = Modifier.width(4.dp))
+                        Text(
+                            text = "파동 신뢰도 보조 지침 (충분조건 분석)",
+                            fontSize = 11.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = NeonCyan
+                        )
+                    }
+                    Spacer(modifier = Modifier.height(5.dp))
+
+                    result.reliabilityGuidelines.forEach { guide ->
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(vertical = 2.dp),
+                            verticalAlignment = Alignment.Top
+                        ) {
+                            Icon(
+                                imageVector = if (guide.isSatisfied) Icons.Filled.CheckCircleOutline else Icons.Filled.Info,
+                                contentDescription = null,
+                                tint = if (guide.isSatisfied) NeonGreen else TextMuted,
+                                modifier = Modifier.size(12.dp).padding(top = 1.dp)
+                            )
+                            Spacer(modifier = Modifier.width(5.dp))
+                            Column(modifier = Modifier.weight(1f)) {
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    horizontalArrangement = Arrangement.SpaceBetween
+                                ) {
+                                    Text(
+                                        text = guide.guidelineName,
+                                        fontSize = 10.sp,
+                                        fontWeight = FontWeight.SemiBold,
+                                        color = if (guide.isSatisfied) TextPrimary else TextSecondary
+                                    )
+                                    Text(
+                                        text = guide.scoreImpactText,
+                                        fontSize = 9.sp,
+                                        fontFamily = FontFamily.Monospace,
+                                        color = if (guide.isSatisfied) NeonGreen else TextDim
+                                    )
+                                }
+                                Text(
+                                    text = guide.description,
+                                    fontSize = 9.5.sp,
+                                    color = TextSecondary,
+                                    lineHeight = 13.sp
+                                )
+                            }
+                        }
+                    }
+
+                    Spacer(modifier = Modifier.height(10.dp))
+                    HorizontalDivider(color = DarkBorder)
+                    Spacer(modifier = Modifier.height(8.dp))
+
+                    // 3. 각 파동별 피보나치 변동 상세 테이블
                     Text(
-                        text = "각 파동별 분석 및 피보나치 비율",
+                        text = "각 파동별 구간 분석 및 피보나치 비율",
                         fontSize = 11.sp,
                         fontWeight = FontWeight.Bold,
                         color = TextSecondary
@@ -573,7 +760,7 @@ private fun ElliottWaveAnalysisCard(
                                 fontSize = 11.sp,
                                 fontWeight = FontWeight.Bold,
                                 color = NeonCyan,
-                                modifier = Modifier.width(68.dp)
+                                modifier = Modifier.width(78.dp)
                             )
                             Text(
                                 text = "%,.0f원 → %,.0f원".format(detail.startPrice, detail.endPrice),

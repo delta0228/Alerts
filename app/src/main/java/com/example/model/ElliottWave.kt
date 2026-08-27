@@ -36,11 +36,47 @@ data class WaveDetailItem(
     val description: String
 )
 
+/**
+ * 1. 절대 불가변 3대 원칙 (필요조건) 검증 결과
+ */
+data class InviolableRuleCheck(
+    val ruleName: String,
+    val isSatisfied: Boolean,
+    val reason: String,
+    val metricValueText: String = ""
+)
+
+/**
+ * 2. 신뢰도 보조 지침 (충분조건 가이드라인) 검증 결과
+ */
+data class ReliabilityGuidelineCheck(
+    val guidelineName: String,
+    val isSatisfied: Boolean,
+    val description: String,
+    val scoreImpactText: String = ""
+)
+
+/**
+ * 3. 패턴 유형 (정상 충격파, 리딩/엔딩 다이애거널 예외 패턴 등)
+ */
+enum class WavePatternType(val displayName: String, val badgeColorHex: Long) {
+    STANDARD_IMPULSE("정석 충격파 (Standard Impulse)", 0xFF10B981),
+    LEADING_DIAGONAL("리딩 다이애거널 (Leading Diagonal - 1파/A파)", 0xFF06B6D4),
+    ENDING_DIAGONAL("엔딩 다이애거널 (Ending Diagonal - 5파/C파)", 0xFFF59E0B),
+    CORRECTION_ABC("조정 사이클 (A-B-C Correction)", 0xFF8B5CF6),
+    INVALID_STRUCTURE("불가변 원칙 위배 (Invalidated)", 0xFFEF4444),
+    EMERGING("파동 진행/형성 중", 0xFF94A3B8)
+}
+
 data class ElliottWaveResult(
     val points: List<WavePoint>,
     val currentPhase: WavePhase,
     val isBullishCycle: Boolean,
     val confidenceScore: Int, // 0 ~ 100%
+    val patternType: WavePatternType = WavePatternType.STANDARD_IMPULSE,
+    val inviolableRules: List<InviolableRuleCheck> = emptyList(),
+    val reliabilityGuidelines: List<ReliabilityGuidelineCheck> = emptyList(),
+    val isStrictlyValid: Boolean = true,
     val projectedNextPoint: WavePoint? = null,
     val waveDetails: List<WaveDetailItem> = emptyList(),
     val summary: String,
@@ -49,3 +85,4 @@ data class ElliottWaveResult(
     val resistancePrice: Double,
     val targetPrice: Double
 )
+
